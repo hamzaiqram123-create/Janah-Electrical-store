@@ -648,6 +648,32 @@ const custRow = await sql`SELECT phone FROM customers WHERE id = ${d.order.custo
     check("correct password is refused while locked", (await a.post("/api/auth/login", { email: victim, password: "Lockme12345" })).status !== 200);
   });
 
+  await group("account deletion", async () => {
+    const c = await new Client("en").open();
+    const mail = `delete-me-${run}@example.com`;
+    eq("register", (await c.post("/api/auth/register", { name: "Delete Me", email: mail, phone: "0509990011", password: "DeleteMe123" })).status, 200);
+    await c.post("/api/account/addresses", { ...address(riyadh.id), label: "Home", recipient_name: "Delete Me", phone: "0509990011" });
+    await c.post("/api/account/wishlist", { product_id: pA.id });
+    await c.post("/api/cart/items", { product_id: pA.id, quantity: 1 });
+    const q = (await c.post("/api/checkout/quote", { city_id: riyadh.id })).data;
+    const placed = (await c.post("/api/checkout/place", { customer: { name: "Delete Me", email: mail, phone: "0509990011" }, address: address(riyadh.id), shipping_method_id: q.shipping_options[0].id, payment_method: "cod", accept_terms: true })).data;
+    eq("refused while an order is open", (await c.post("/api/account/delete", { password: "DeleteMe123" })).status, 409);
+    const o = (await admin.get(`/api/admin/orders?q=${placed.number}`)).data.rows[0];
+    eq("order cancelled by staff", (await admin.post(`/api/admin/orders/${o.id}/status`, { status: "cancelled", note: "test" })).status, 200);
+    eq("wrong password refused", (await c.post("/api/account/delete", { password: "nope-nope-1" })).status, 401);
+    eq("staff cannot delete themselves this way", (await admin.post("/api/account/delete", { password: ADMIN_PASSWORD })).status, 403);
+    eq("account deleted", (await c.post("/api/account/delete", { password: "DeleteMe123" })).status, 200);
+    eq("signed out", (await c.get("/api/auth/me")).data.user, null);
+    eq("cannot sign in again", (await new Client().open().then((x) => x.post("/api/auth/login", { email: mail, password: "DeleteMe123" }))).status, 401);
+    const left = await sql`SELECT (SELECT count(*)::int FROM users WHERE lower(email) = ${mail}) AS users, (SELECT count(*)::int FROM customers WHERE lower(email) = ${mail}) AS customers, (SELECT count(*)::int FROM audit_logs WHERE actor = ${mail}) AS logs`;
+    check("no login, customer row or log entry keeps the e-mail", left[0].users === 0 && left[0].customers === 0 && left[0].logs === 0, left[0]);
+    const kept = (await admin.get(`/api/admin/orders/${o.id}`)).data;
+    check("order and invoice records kept for tax purposes", kept.order.number === placed.number && kept.invoices.length >= 1, kept.invoices);
+    eq("customer shown as deleted to staff", kept.customer?.name, "Deleted customer");
+    eq("addresses removed", (await sql`SELECT count(*)::int AS n FROM addresses WHERE customer_id = ${kept.order.customer_id}`)[0].n, 0);
+    eq("email can register again", (await new Client().open().then((x) => x.post("/api/auth/register", { name: "Back Again", email: mail, phone: "0509990011", password: "DeleteMe123" }))).status, 200);
+  });
+
   await group("logout", async () => {
     eq("logout", (await customer.post("/api/auth/logout")).status, 200);
     eq("session ended", (await customer.get("/api/auth/me")).data.user, null);

@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { config } from "../config";
 import { db, tx } from "../db";
-import { bad, conflict, type Ctx, type Router, unauthorized } from "../http";
+import { bad, conflict, forbidden, type Ctx, type Router, unauthorized } from "../http";
 import { audit, checkCredentials, endSession, hashPassword, loadUserByToken, requireUser, startSession, verifyPassword } from "../auth";
 import { randomToken, sha256 } from "../security";
 import { mergeCartOnLogin } from "../services/cart";
+import { refreshRating } from "../services/catalog";
 import { kickNotifications, notifyCustomer } from "../services/notifications";
 import * as s from "./schemas";
 
@@ -96,6 +97,41 @@ export function registerAuthApi(r: Router) {
     await db.exec(`UPDATE users SET password_hash = $2, updated_at = now() WHERE id = $1`, [u.id, await hashPassword(body.password)]);
     await db.exec(`DELETE FROM sessions WHERE user_id = $1 AND id <> $2`, [u.id, u.session_id]);
     await audit(c, "user.password_change", "user", u.id);
+    return { ok: true };
+  }, { auth: "user", rate: "auth" });
+
+  /**
+   * Customer deletes their own account (required by Google Play and the App Store, and the customer's right
+   * under the Saudi PDPL). Sign-in, addresses, wishlist, reviews and contact details are removed. Orders and
+   * tax invoices stay, because the VAT regulations require keeping them; they are no longer linked to a login.
+   */
+  r.post("/api/account/delete", async (c) => {
+    const u = requireUser(c);
+    if (u.kind !== "customer") throw forbidden("staff_account");
+    const body = await c.body(z.object({ password: z.string().min(1).max(128) }));
+    const row = await db.one<{ password_hash: string }>(`SELECT password_hash FROM users WHERE id = $1`, [u.id]);
+    if (!row?.password_hash || !(await verifyPassword(body.password, row.password_hash))) throw unauthorized("invalid_credentials");
+    const open = await db.one(
+      `SELECT number FROM orders WHERE user_id = $1 AND status IN ('pending','confirmed','processing','ready_for_shipment','shipped','out_for_delivery') LIMIT 1`, [u.id]);
+    if (open) throw conflict("account_has_open_orders", { order: open.number });
+    const reviewed = await db.q<{ product_id: number }>(`SELECT r.product_id FROM reviews r JOIN customers cu ON cu.id = r.customer_id WHERE cu.user_id = $1`, [u.id]);
+    await tx(async (t) => {
+      const cust = await t.one<{ id: number }>(`SELECT id FROM customers WHERE user_id = $1`, [u.id]);
+      if (cust) {
+        for (const table of ["addresses", "wishlists", "reviews"]) await t.exec(`DELETE FROM ${table} WHERE customer_id = $1`, [cust.id]);
+        await t.exec(`UPDATE support_tickets SET name = 'Deleted customer', email = 'deleted@invalid', phone = NULL, customer_id = NULL WHERE customer_id = $1`, [cust.id]);
+        await t.exec(
+          `UPDATE customers SET user_id = NULL, name = 'Deleted customer', email = NULL, phone = NULL, company_name = NULL, vat_number = NULL,
+                  marketing_opt_in = false, is_guest = true, updated_at = now() WHERE id = $1`, [cust.id]);
+      }
+      // the activity log keeps what happened, not who: earlier entries lose the e-mail address too
+      await t.exec(`UPDATE audit_logs SET actor = 'deleted customer', ip = NULL WHERE user_id = $1`, [u.id]);
+      await t.exec(`INSERT INTO audit_logs (actor, action, entity, entity_id) VALUES ('deleted customer', 'customer.account_deleted', 'customer', $1)`, [cust ? String(cust.id) : null]);
+      await t.exec(`DELETE FROM users WHERE id = $1`, [u.id]); // sessions, carts, password resets and notifications go with it
+    });
+    for (const r of reviewed) await refreshRating(r.product_id).catch(() => {});
+    c.setCookies.push(`sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`);
+    c.user = null;
     return { ok: true };
   }, { auth: "user", rate: "auth" });
 }

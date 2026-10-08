@@ -1,0 +1,71 @@
+# Builds the Windows app (desktop/) into an installer .exe on GitHub's Windows servers and publishes it as a
+# GitHub Release. Runs when desktop/ changes on main, or by hand: Actions → "Windows app" → Run workflow.
+# The installer is not code-signed (that needs a paid certificate), so Windows SmartScreen asks once:
+# "More info" → "Run anyway".
+name: Windows app
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Build installer
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --win nsis --x64 --publish never -c.extraMetadata.version=1.0.${{ github.run_number }}
+
+      - name: Collect
+        id: info
+        run: |
+          EXE=$(ls desktop/dist/*.exe | head -1)
+          NAME=$(basename "$EXE")
+          cp "$EXE" "$NAME"
+          sha256sum "$NAME" > "$NAME.sha256"
+          URL=$(node -p "require('./desktop/config.json').url")
+          echo "exe=$NAME" >> "$GITHUB_OUTPUT"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "version=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          ls -la "$NAME"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-v${{ steps.info.outputs.version }}
+          name: Windows app ${{ steps.info.outputs.version }}
+          files: |
+            ${{ steps.info.outputs.exe }}
+            ${{ steps.info.outputs.exe }}.sha256
+          body: |
+            Windows app for شركة جناح الريادة. It opens ${{ steps.info.outputs.url }} in its own window. Store menu → Back office opens the admin.
+
+            **Install:** download `${{ steps.info.outputs.exe }}` and run it. It installs for the current user (no administrator rights needed), adds Desktop and Start-menu shortcuts and starts the app.
+            The installer isn't code-signed yet, so Windows SmartScreen may say "Windows protected your PC": choose **More info → Run anyway**.
+
+            Windows 10 and 11, 64-bit.

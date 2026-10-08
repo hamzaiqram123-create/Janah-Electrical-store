@@ -1,0 +1,39 @@
+{
+  "name": "janah-alriyadah-desktop",
+  "productName": "Janah Al Riyada",
+  "version": "1.0.0",
+  "description": "شركة جناح الريادة — Windows app for the online store and the back office",
+  "author": "Janah Al Riyada Co.",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "sa.janah.store",
+    "productName": "Janah Al Riyada",
+    "copyright": "© Janah Al Riyada Co.",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "config.json", "loading.html", "offline.html", "icon.png"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Janah Al Riyada",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "janah-alriyadah-setup-${version}.exe"
+    }
+  }
+}

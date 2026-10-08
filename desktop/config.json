@@ -1,0 +1,4 @@
+{
+  "comment": "The website the app opens. Change it when the store moves to its own domain, then rebuild (push to main).",
+  "url": "https://janah-alriyadah-store.onrender.com"
+}

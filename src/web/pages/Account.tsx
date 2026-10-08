@@ -88,7 +88,36 @@ export function AccountHome() {
           <Button type="submit" variant="outline" busy={pw.busy}>{t("auth.save_password")}</Button>
         </form>
       </div>
+      <DeleteAccount />
     </AccountLayout>
+  );
+}
+
+/** Self-service account deletion (app-store and PDPL requirement). */
+function DeleteAccount() {
+  const app = useApp();
+  const { t } = app;
+  const [open, setOpen] = useState(false);
+  const form = useForm({ password: "" });
+  const run = () => form.submit(async (v) => {
+    await api("/api/account/delete", { body: v });
+    clearCachedPages();
+    app.toast(t("account.deleted"));
+    setTimeout(() => { window.location.href = app.href("/"); }, 900);
+  }, (e) => app.toast(app.errorText(e), "err"));
+  return (
+    <section className="card mt-5 border-danger/40 p-5">
+      <h2 className="text-lg font-bold">{t("account.delete_title")}</h2>
+      <p className="mt-1 max-w-2xl text-sm text-muted">{t("account.delete_text")}</p>
+      <Button variant="danger" className="mt-4" icon="trash" onClick={() => { form.setValues({ password: "" }); setOpen(true); }}>{t("account.delete_button")}</Button>
+      <Modal open={open} onClose={() => setOpen(false)} title={t("account.delete_title")}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void run(); }} noValidate>
+          <p className="text-sm">{t("account.delete_confirm")}</p>
+          <Field label={t("f.password")} error={form.errors.password}><Input type="password" dir="ltr" className="text-start" autoComplete="current-password" autoFocus {...form.bind("password")} /></Field>
+          <div className="flex justify-end gap-3"><Button variant="ghost" onClick={() => setOpen(false)}>{t("c.cancel")}</Button><Button type="submit" variant="danger" busy={form.busy}>{t("account.delete_button")}</Button></div>
+        </form>
+      </Modal>
+    </section>
   );
 }
 

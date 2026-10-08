@@ -216,4 +216,11 @@ export const en: Record<string, string> = {
   "app.offline_text": "Check your connection and try again. Pages you opened before are available offline; ordering and payment need the internet.",
   "app.retry": "Try again",
   "app.install_short": "Install",
+  "account.delete_title": "Delete account",
+  "account.delete_text": "Permanently removes your sign-in, addresses, wishlist, reviews and contact details. Orders and tax invoices are kept, as VAT regulations require, but are no longer linked to an account.",
+  "account.delete_button": "Delete my account",
+  "account.delete_confirm": "Enter your password to confirm. This can't be undone.",
+  "account.deleted": "Your account has been deleted",
+  "err.account_has_open_orders": "You have an order in progress. You can delete the account once it's delivered or cancelled.",
+  "err.staff_account": "Staff accounts are managed in the back office.",
 };

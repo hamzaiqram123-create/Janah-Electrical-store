@@ -58,7 +58,8 @@ jobs:
 
       - name: Build
         working-directory: android
-        run: gradle assembleRelease --no-daemon --stacktrace -PversionCode=${{ github.run_number }}
+        # .apk to install directly; .aab is the format Google Play takes
+        run: gradle assembleRelease bundleRelease --no-daemon --stacktrace -PversionCode=${{ github.run_number }}
 
       - name: Check signature and collect details
         id: info
@@ -71,8 +72,10 @@ jobs:
           PKG=$(python3 -c "import json;print(json.load(open('android/twa.json'))['packageId'])")
           VERSION="$(python3 -c "import json;print(json.load(open('android/twa.json'))['versionName'])").${{ github.run_number }}"
           OUT="janah-alriyadah-${VERSION}.apk"
+          AAB="android-app-bundle-${VERSION}.aab"
           cp "$APK" "$OUT"
-          sha256sum "$OUT" > "$OUT.sha256"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$AAB"
+          sha256sum "$OUT" "$AAB" > "$OUT.sha256"
           {
             echo "apk=$OUT"; echo "sha=$SHA"; echo "host=$HOST"; echo "pkg=$PKG"; echo "version=$VERSION"
           } >> "$GITHUB_OUTPUT"
@@ -92,6 +95,7 @@ jobs:
           files: |
             ${{ steps.info.outputs.apk }}
             ${{ steps.info.outputs.apk }}.sha256
+            android-app-bundle-${{ steps.info.outputs.version }}.aab
           body: |
             Android app for شركة جناح الريادة (`${{ steps.info.outputs.pkg }}`). It opens https://${{ steps.info.outputs.host }} full-screen.
 
