@@ -9,3 +9,5 @@ backups
 *.log
 docs
 tests
+android
+.github

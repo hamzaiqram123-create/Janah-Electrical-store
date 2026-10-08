@@ -1,0 +1,77 @@
+import groovy.json.JsonSlurper
+
+plugins {
+    id "com.android.application"
+}
+
+// Shared settings (website address, package id) live in android/twa.json
+def twa = new JsonSlurper().parse(rootProject.file("twa.json"))
+def code = (project.findProperty("versionCode") ?: "1") as Integer
+
+// Generated resources: the start page per phone language and the Digital Asset Links statement,
+// both derived from twa.json so the website address is set in one place.
+def twaRes = new File(buildDir, "generated/twa/res")
+[["values", "ar"], ["values-en", "en"], ["values-ur", "ur"]].each { folder, lang ->
+    def dir = new File(twaRes, folder)
+    dir.mkdirs()
+    def site = "https://${twa.host}"
+    def extra = folder == "values"
+        ? "\n    <string name=\"assetStatements\" translatable=\"false\">[{ \\\"relation\\\": [\\\"delegate_permission/common.handle_all_urls\\\"], \\\"target\\\": {\\\"namespace\\\": \\\"web\\\", \\\"site\\\": \\\"${site}\\\"}}]</string>"
+        : ""
+    new File(dir, "twa.xml").setText("""<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="launchUrl" translatable="false">${site}/${lang}?source=android</string>${extra}
+</resources>
+""", "UTF-8")
+}
+
+android {
+    namespace "sa.janah.store"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId twa.packageId
+        minSdk 21
+        targetSdk 35
+        versionCode code
+        versionName "${twa.versionName}.${code}"
+        // the launcher label and start page follow the phone's language (values/, values-en/, values-ur/)
+        manifestPlaceholders = [hostName: twa.host, providerAuthority: "${twa.packageId}.fileprovider"]
+    }
+
+    signingConfigs {
+        release {
+            storeFile rootProject.file(System.getenv("ANDROID_KEYSTORE") ?: "release.jks")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "janah"
+            keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    sourceSets {
+        main.res.srcDirs += twaRes
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    // Trusted Web Activity launcher: opens the website full-screen in the phone's browser engine,
+    // with a WebView fallback on phones without a supporting browser.
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.5.0"
+}

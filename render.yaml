@@ -13,7 +13,7 @@ databases:
 
 services:
   - type: web
-    name: janah-store
+    name: janah-alriyadah-store   # → https://janah-alriyadah-store.onrender.com, the address the Android app opens (android/twa.json)
     runtime: docker
     plan: free
     region: frankfurt
@@ -37,5 +37,7 @@ services:
         sync: false            # at least 10 characters with letters and digits; delete after the first deploy
       - key: LOG_LEVEL
         value: info
+      - key: ANDROID_APP_PACKAGE
+        value: sa.janah.store       # with ANDROID_APP_SHA256 (from the Android release notes) the app opens without an address bar
       # Add when ready (see .env.example): APP_URL for a custom domain, PAYMENT_PROVIDER + MOYASAR_SECRET_KEY,
       # EMAIL_PROVIDER + RESEND_API_KEY + EMAIL_FROM, SMS_PROVIDER …, ZATCA_* …

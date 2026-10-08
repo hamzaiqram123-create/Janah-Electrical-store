@@ -1,0 +1,6 @@
+{
+  "comment": "The website the app opens. Change host after the site moves to its own domain, then rebuild (push to main).",
+  "host": "janah-alriyadah-store.onrender.com",
+  "packageId": "sa.janah.store",
+  "versionName": "1.0"
+}

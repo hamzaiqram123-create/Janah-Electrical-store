@@ -1,0 +1,102 @@
+# Builds the Android app (android/) on GitHub's servers and publishes the .apk as a GitHub Release.
+# Runs when android/ changes on main, or by hand: Actions → "Android app" → Run workflow.
+#
+# Signing: add these repository secrets (Settings → Secrets and variables → Actions) so every build is signed
+# with the same key, which phones need to install an update over an earlier version:
+#   ANDROID_KEYSTORE_BASE64   base64 of the .jks file
+#   ANDROID_KEYSTORE_PASSWORD
+# Without them each build is signed with a new temporary key (fine for trying the app; to move to a newer
+# build, uninstall the old one first).
+name: Android app
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/release.jks
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "KEY_SOURCE=permanent key (repository secret)" >> "$GITHUB_ENV"
+          else
+            PW="$(openssl rand -hex 16)"
+            echo "::add-mask::$PW"
+            keytool -genkeypair -keystore android/release.jks -alias janah -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$PW" -keypass "$PW" -dname "CN=Janah Al Riyada, O=Janah Al Riyada, C=SA" -noprompt
+            echo "ANDROID_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
+            echo "KEY_SOURCE=temporary key generated for this build" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build
+        working-directory: android
+        run: gradle assembleRelease --no-daemon --stacktrace -PversionCode=${{ github.run_number }}
+
+      - name: Check signature and collect details
+        id: info
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$BT/apksigner" verify --verbose --print-certs "$APK" | tee signature.txt
+          SHA=$(keytool -list -v -keystore android/release.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias janah | sed -n 's/.*SHA256: //p' | head -1)
+          HOST=$(python3 -c "import json;print(json.load(open('android/twa.json'))['host'])")
+          PKG=$(python3 -c "import json;print(json.load(open('android/twa.json'))['packageId'])")
+          VERSION="$(python3 -c "import json;print(json.load(open('android/twa.json'))['versionName'])").${{ github.run_number }}"
+          OUT="janah-alriyadah-${VERSION}.apk"
+          cp "$APK" "$OUT"
+          sha256sum "$OUT" > "$OUT.sha256"
+          {
+            echo "apk=$OUT"; echo "sha=$SHA"; echo "host=$HOST"; echo "pkg=$PKG"; echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Android app $VERSION"
+            echo "- Opens: https://$HOST"
+            echo "- Package: \`$PKG\`"
+            echo "- Signed with: $KEY_SOURCE"
+            echo "- Signing certificate SHA-256: \`$SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v${{ steps.info.outputs.version }}
+          name: Android app ${{ steps.info.outputs.version }}
+          files: |
+            ${{ steps.info.outputs.apk }}
+            ${{ steps.info.outputs.apk }}.sha256
+          body: |
+            Android app for شركة جناح الريادة (`${{ steps.info.outputs.pkg }}`). It opens https://${{ steps.info.outputs.host }} full-screen.
+
+            **Install:** download `${{ steps.info.outputs.apk }}` on the phone, open it, and allow installing from this source when Android asks.
+
+            Signed with: ${{ env.KEY_SOURCE }}
+            Signing certificate SHA-256 (set as `ANDROID_APP_SHA256` on the server so the app opens without an address bar):
+            `${{ steps.info.outputs.sha }}`

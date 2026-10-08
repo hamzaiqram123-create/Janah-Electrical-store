@@ -36,7 +36,7 @@ All configuration is environment variables. `.env.example` documents each one.
    card first, even for free plans.
 3. Enter `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` when asked, then **Apply**.
 4. The first deploy builds the image, creates the tables and loads the reference data, your
-   admin account and the sample catalogue. The store is at `https://janah-store.onrender.com`
+   admin account and the sample catalogue. The store is at `https://janah-alriyadah-store.onrender.com`
    (Render shows the exact address). Sign in at `/admin`.
 5. In the service's **Environment** tab set `SEED_ON_START=false` and delete
    `SEED_ADMIN_PASSWORD`. Otherwise every restart re-adds sample pages or FAQs you deleted.

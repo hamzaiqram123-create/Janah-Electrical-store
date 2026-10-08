@@ -63,3 +63,20 @@ for (const [file, src, size] of jobs) {
 }
 await Bun.write(join(out, "icon.svg"), store.any(512));
 console.log("  public/icons/icon.svg");
+
+// ── Android app (android/): legacy launcher icons, adaptive-icon foreground/monochrome layers, splash
+const res = join(import.meta.dir, "../android/app/src/main/res");
+const densities: [string, number][] = [["mdpi", 1], ["hdpi", 1.5], ["xhdpi", 2], ["xxhdpi", 3], ["xxxhdpi", 4]];
+// adaptive layers are 108dp; the launcher shows the inner 72dp and may mask down to a 66dp circle
+const fg = (s: number, fill: string) => svg(s, bolt(s, 0.42, fill));
+for (const [d, k] of densities) {
+  const dir = join(res, `mipmap-${d}`);
+  mkdirSync(dir, { recursive: true });
+  const legacy = Math.round(48 * k), layer = Math.round(108 * k);
+  await sharp(Buffer.from(store.any(legacy))).resize(legacy, legacy).png({ compressionLevel: 9 }).toFile(join(dir, "ic_launcher.png"));
+  await sharp(Buffer.from(fg(layer, GRAPHITE))).resize(layer, layer).png({ compressionLevel: 9 }).toFile(join(dir, "ic_launcher_foreground.png"));
+  await sharp(Buffer.from(fg(layer, "#000000"))).resize(layer, layer).png({ compressionLevel: 9 }).toFile(join(dir, "ic_launcher_monochrome.png"));
+}
+mkdirSync(join(res, "drawable-nodpi"), { recursive: true });
+await sharp(Buffer.from(store.any(384))).resize(384, 384).png({ compressionLevel: 9 }).toFile(join(res, "drawable-nodpi/splash.png"));
+console.log("  android/app/src/main/res/mipmap-*/ic_launcher*.png, drawable-nodpi/splash.png");
