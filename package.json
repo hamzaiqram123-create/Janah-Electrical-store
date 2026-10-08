@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "شركة جناح الريادة — Saudi electrical products e-commerce platform (storefront, REST API, admin dashboard)",
-  "engines": { "bun": ">=1.2.0" },
+  "engines": {
+    "bun": ">=1.2.0"
+  },
   "scripts": {
     "dev": "bun scripts/dev.ts",
     "build": "bun scripts/build.ts",
@@ -18,11 +20,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "sharp": ">=0.33.5",
-    "tailwindcss": "^4.1.0",
-    "zod": "^3.25.0"
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "sharp": "0.35.4",
+    "tailwindcss": "4.3.3",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",
