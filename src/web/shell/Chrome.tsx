@@ -147,9 +147,9 @@ export function Header() {
       </div>
 
       <div className="container-x flex h-14 items-center gap-3 md:h-[72px] md:gap-6">
-        {/* the installed app has no browser back button */}
+        {/* the installed app has no browser back button (Android has the system one; iPad and Windows windows are wide) */}
         {standalone && app.route.name !== "home" && (
-          <button type="button" className={`icon-btn -ms-2 ${appShell === "windows" ? "" : "md:hidden"}`} onClick={() => (history.length > 1 ? history.back() : void app.navigate(app.href("/")))} aria-label={t("c.back")}>
+          <button type="button" className={`icon-btn -ms-2 ${appShell === "ios" || appShell === "windows" ? "" : "md:hidden"}`} onClick={() => (history.length > 1 ? history.back() : void app.navigate(app.href("/")))} aria-label={t("c.back")}>
             <Icon name="chev" size={24} className="rotate-180" />
           </button>
         )}

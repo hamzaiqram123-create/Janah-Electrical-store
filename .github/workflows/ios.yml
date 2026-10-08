@@ -34,7 +34,8 @@ env:
 
 jobs:
   ios:
-    runs-on: macos-15
+    # macOS 26 with Xcode 26: App Store Connect only accepts apps built with the iOS 26 SDK (since April 2026)
+    runs-on: macos-26
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +43,7 @@ jobs:
       - name: Tools
         run: |
           brew install xcodegen
-          xcodebuild -version
+          echo "::notice::$(xcodebuild -version | tr '\n' ' ')"
 
       - name: Generate the Xcode project
         working-directory: ios
@@ -91,9 +92,13 @@ jobs:
           curl -sf http://localhost:3000/api/health
 
       - name: Run the app in the simulators and take screenshots
+        timeout-minutes: 40
         run: |
           APP=ios/build/Build/Products/Release-iphonesimulator/JanahStore.app
           mkdir -p shots
+          log() { echo "$(date -u +%H:%M:%S) $*" | tee -a progress.log; }
+          # run a command with a time limit (macOS has no `timeout`)
+          limit() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
           python3 - > devices.txt <<'PY'
           import json, subprocess
           runtimes = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
@@ -102,39 +107,49 @@ jobs:
               for n in names:
                   for d in devices:
                       if d["name"] == n:
-                          return d["udid"]
+                          return d["udid"] + " " + n.replace(" ", "_")
               return ""
           # 6.9-inch iPhone (1320 x 2868) and 13-inch iPad (2064 x 2752): the sizes App Store Connect asks for
-          print(pick(["iPhone 16 Pro Max", "iPhone 17 Pro Max", "iPhone 15 Pro Max"]))
-          print(pick(["iPad Pro 13-inch (M4)", "iPad Pro 13-inch (M5)", "iPad Air 13-inch (M3)", "iPad Air 13-inch (M2)"]))
+          print(pick(["iPhone 17 Pro Max", "iPhone 16 Pro Max", "iPhone 15 Pro Max"]))
+          print(pick(["iPad Pro 13-inch (M5)", "iPad Pro 13-inch (M4)", "iPad Air 13-inch (M3)", "iPad Air 13-inch (M2)"]))
           PY
-          IPHONE=$(sed -n 1p devices.txt); IPAD=$(sed -n 2p devices.txt)
-          [ -n "$IPHONE" ] && [ -n "$IPAD" ] || { echo "::error::simulators not found"; xcrun simctl list devices available; exit 1; }
-          PRODUCT=$(curl -s http://localhost:3000/ar/products | grep -o 'href="/ar/p/[^"]*"' | head -1 | sed 's/href="\/ar\/p\///; s/"$//')
+          read -r IPHONE IPHONE_NAME < <(sed -n 1p devices.txt)
+          read -r IPAD IPAD_NAME < <(sed -n 2p devices.txt)
+          log "iPhone: $IPHONE_NAME $IPHONE / iPad: $IPAD_NAME $IPAD"
+          [ -n "$IPHONE" ] && [ -n "$IPAD" ] || { echo "::error::simulators not found"; xcrun simctl list devices available | tee -a progress.log; exit 1; }
+          PRODUCT=$(python3 -c "import re, urllib.request; h = urllib.request.urlopen('http://localhost:3000/ar/products').read().decode(); m = re.search(r'href=\"/ar/p/([^\"]+)\"', h); print(m.group(1) if m else '')")
           [ -n "$PRODUCT" ] || { echo "::error::no product found in the local store"; exit 1; }
+          log "product: $PRODUCT"
+          # start both simulators now; booting takes a while the first time
+          xcrun simctl boot "$IPHONE" || true
+          xcrun simctl boot "$IPAD" || true
 
           run_on() {  # <udid> <device label>
             local U=$1 N=$2 i=0
-            xcrun simctl boot "$U" || true
-            xcrun simctl bootstatus "$U" -b > /dev/null
-            xcrun simctl ui "$U" appearance light
+            log "$N: waiting for boot"
+            limit 900 xcrun simctl bootstatus "$U" -b > /dev/null
+            log "$N: booted"
+            xcrun simctl ui "$U" appearance light || true
             xcrun simctl status_bar "$U" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
-              --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
-            xcrun simctl install "$U" "$APP"
+              --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100 || true
+            limit 300 xcrun simctl install "$U" "$APP"
+            log "$N: installed"
             while read -r LANG_ NAME PATH_ <&3; do
               i=$((i + 1))
-              xcrun simctl terminate "$U" sa.janah.store 2> /dev/null || true
-              xcrun simctl launch "$U" sa.janah.store -AppleLanguages "($LANG_)" -AppleLocale "${LANG_}_SA" \
-                --store-url http://localhost:3000 --start-path "$PATH_" > /dev/null
+              xcrun simctl terminate "$U" sa.janah.store > /dev/null 2>&1 || true
+              limit 120 xcrun simctl launch "$U" sa.janah.store -AppleLanguages "($LANG_)" -AppleLocale "${LANG_}_SA" \
+                --store-url http://localhost:3000 --start-path "$PATH_" > /dev/null < /dev/null
               sleep 12
-              PID=$(xcrun simctl spawn "$U" launchctl list | awk '/UIKitApplication:sa\.janah\.store/ {print $1}' | head -1)
+              PID=$(limit 60 xcrun simctl spawn "$U" launchctl list < /dev/null | awk '/UIKitApplication:sa\.janah\.store/ && !p { print $1; p = 1 }')
               if ! [[ "$PID" =~ ^[0-9]+$ ]]; then
+                log "$N $LANG_ $PATH_: NOT RUNNING"
                 echo "::error::the app is not running on the $N after opening $PATH_"
-                xcrun simctl spawn "$U" log show --last 2m --predicate 'process == "JanahStore"' --style compact | tail -40 || true
+                limit 120 xcrun simctl spawn "$U" log show --last 3m --predicate 'process == "JanahStore"' --style compact < /dev/null | tail -60 >> progress.log || true
+                limit 60 xcrun simctl io "$U" screenshot "shots/$N-failed.png" > /dev/null 2>&1 || true
                 exit 1
               fi
-              xcrun simctl io "$U" screenshot "shots/$N-$i-$LANG_-$NAME.png" > /dev/null
-              echo "$N $LANG_ $PATH_: running (pid $PID)"
+              limit 120 xcrun simctl io "$U" screenshot "shots/$N-$i-$LANG_-$NAME.png" > /dev/null < /dev/null
+              log "$N $LANG_ $PATH_: running (pid $PID), screenshot taken"
             done 3<<LIST
           ar home /ar
           ar categories /ar/categories
@@ -148,12 +163,25 @@ jobs:
           }
           run_on "$IPHONE" iphone
           run_on "$IPAD" ipad
-          grep -c "JanahApp/" server.log || true
+          log "requests from the app seen by the store: $(grep -c 'JanahApp/' server.log || true)"
           ls -la shots
 
-      - name: Keep the server log
-        if: failure()
-        run: tail -60 server.log || true
+      - name: Publish diagnostics
+        if: failure() || cancelled()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-diagnostics-${{ github.run_number }}
+          name: iPhone / iPad app — diagnostics for build ${{ github.run_number }}
+          prerelease: true
+          fail_on_unmatched_files: false
+          files: |
+            progress.log
+            server.log
+            ios/build.log
+            ios/archive.log
+            ios/export.log
+            shots/*.png
+          body: Logs from a failed iOS build, for troubleshooting. Safe to delete.
 
       - name: App Store signing ready?
         id: apple
