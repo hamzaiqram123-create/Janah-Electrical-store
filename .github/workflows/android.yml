@@ -6,7 +6,13 @@
 #   ANDROID_KEYSTORE_BASE64   base64 of the .jks file
 #   ANDROID_KEYSTORE_PASSWORD
 # Without them each build is signed with a new temporary key (fine for trying the app; to move to a newer
-# build, uninstall the old one first).
+# build, uninstall the old one first). For Google Play this key is the "upload key".
+#
+# Google Play: with the permanent key AND the secret below, each build is also uploaded to the Play Console as a
+# draft release on the Internal testing track (you review and roll it out there). The app must already exist
+# in the Play Console, with one .aab uploaded by hand first. See docs/STORES.md.
+#   PLAY_SERVICE_ACCOUNT_JSON  JSON key of a Google Cloud service account invited in Play Console → Users and
+#                              permissions, with the "Release apps to testing tracks" permission
 name: Android app
 
 on:
@@ -42,11 +48,13 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
             echo "$KEYSTORE_B64" | base64 -d > android/release.jks
             echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
             echo "KEY_SOURCE=permanent key (repository secret)" >> "$GITHUB_ENV"
+            if [ -n "$PLAY_JSON" ]; then echo "PLAY_READY=true" >> "$GITHUB_ENV"; fi
           else
             PW="$(openssl rand -hex 16)"
             echo "::add-mask::$PW"
@@ -86,6 +94,16 @@ jobs:
             echo "- Signed with: $KEY_SOURCE"
             echo "- Signing certificate SHA-256: \`$SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload to Google Play (draft, internal testing)
+        if: env.PLAY_READY == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ steps.info.outputs.pkg }}
+          releaseFiles: android-app-bundle-${{ steps.info.outputs.version }}.aab
+          track: internal
+          status: draft
 
       - name: Publish release
         uses: softprops/action-gh-release@v2

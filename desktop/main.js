@@ -1,5 +1,6 @@
 // شركة جناح الريادة — Windows app. Opens the online store (or the back office) in its own window.
 const { app, BrowserWindow, Menu, shell, session } = require("electron");
+const fs = require("fs");
 const path = require("path");
 const { url: SITE } = require("./config.json");
 
@@ -8,6 +9,12 @@ const ORIGIN = new URL(SITE).origin;
 const EXTERNAL = /^(mailto:|tel:|sms:|whatsapp:)|^https:\/\/(wa\.me|api\.whatsapp\.com|maps\.google\.|www\.google\.com\/maps|goo\.gl\/maps|www\.instagram\.com|x\.com|twitter\.com|www\.tiktok\.com|www\.snapchat\.com)/i;
 
 app.setAppUserModelId("sa.janah.store");
+// lets the store know it runs inside its own app: no "install the app" offers, and a back button in the header
+app.userAgentFallback = `${app.userAgentFallback} JanahApp/${app.getVersion()} (windows)`;
+
+// --smoke-test=<folder>: start, wait for the store (or the offline page), save a screenshot and a report, quit.
+// Used by the GitHub build to check the packaged app actually starts.
+const SMOKE = (process.argv.find((a) => a.startsWith("--smoke-test=")) || "").slice("--smoke-test=".length);
 if (!app.requestSingleInstanceLock()) app.quit();
 
 const lang = () => {
@@ -51,8 +58,34 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "offline.html"), { query: { u: url && url.startsWith(ORIGIN) ? url : startUrl(false), lang: lang() } });
   });
   wc.on("page-title-updated", (e) => { e.preventDefault(); win.setTitle(t("جناح الريادة", "Janah Al Riyada")); });
+  // mouse back / forward buttons
+  win.on("app-command", (_e, cmd) => {
+    const h = wc.navigationHistory;
+    if (cmd === "browser-backward" && h.canGoBack()) h.goBack();
+    if (cmd === "browser-forward" && h.canGoForward()) h.goForward();
+  });
+  if (SMOKE) smokeTest(wc);
 
   open(startUrl(process.argv.includes("--admin")));
+}
+
+function smokeTest(wc) {
+  const report = (result) => {
+    fs.mkdirSync(SMOKE, { recursive: true });
+    fs.writeFileSync(path.join(SMOKE, "result.json"), JSON.stringify({ ...result, userAgent: wc.getUserAgent(), version: app.getVersion() }, null, 2));
+  };
+  const timer = setTimeout(() => { report({ ok: false, reason: "timeout", url: wc.getURL() }); app.exit(1); }, 150_000);
+  wc.on("did-finish-load", async () => {
+    const url = wc.getURL();
+    if (url.includes("loading.html")) return;
+    await new Promise((r) => setTimeout(r, 1500));
+    const png = (await wc.capturePage()).toPNG();
+    fs.mkdirSync(SMOKE, { recursive: true });
+    fs.writeFileSync(path.join(SMOKE, "screen.png"), png);
+    report({ ok: true, url, page: url.startsWith(ORIGIN) ? "store" : url.includes("offline.html") ? "offline" : "other", title: await wc.executeJavaScript("document.title") });
+    clearTimeout(timer);
+    app.exit(0);
+  });
 }
 
 function buildMenu() {

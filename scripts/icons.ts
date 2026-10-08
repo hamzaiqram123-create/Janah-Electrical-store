@@ -80,3 +80,14 @@ for (const [d, k] of densities) {
 mkdirSync(join(res, "drawable-nodpi"), { recursive: true });
 await sharp(Buffer.from(store.any(384))).resize(384, 384).png({ compressionLevel: 9 }).toFile(join(res, "drawable-nodpi/splash.png"));
 console.log("  android/app/src/main/res/mipmap-*/ic_launcher*.png, drawable-nodpi/splash.png");
+
+// ── iPhone / iPad app (ios/): App Store icon (square, opaque: iOS rounds it), launch-screen logo
+const xc = join(import.meta.dir, "../ios/JanahStore/Assets.xcassets");
+mkdirSync(join(xc, "AppIcon.appiconset"), { recursive: true });
+await sharp(Buffer.from(store.apple(1024))).resize(1024, 1024).flatten({ background: COPPER }).removeAlpha().png({ compressionLevel: 9 })
+  .toFile(join(xc, "AppIcon.appiconset/AppIcon-1024.png"));
+mkdirSync(join(xc, "LaunchLogo.imageset"), { recursive: true });
+for (const k of [2, 3]) {
+  await sharp(Buffer.from(store.any(96 * k))).resize(96 * k, 96 * k).png({ compressionLevel: 9 }).toFile(join(xc, `LaunchLogo.imageset/LaunchLogo@${k}x.png`));
+}
+console.log("  ios/JanahStore/Assets.xcassets/AppIcon.appiconset, LaunchLogo.imageset");

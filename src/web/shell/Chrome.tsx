@@ -124,7 +124,7 @@ export function Header() {
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [cats]);
   const store = shell.settings.store;
-  const { standalone } = useInstall();
+  const { standalone, shell: appShell } = useInstall();
 
   return (
     <header className="no-print sticky top-0 z-40 bg-header pt-[env(safe-area-inset-top)] text-header-fg md:static">
@@ -149,7 +149,7 @@ export function Header() {
       <div className="container-x flex h-14 items-center gap-3 md:h-[72px] md:gap-6">
         {/* the installed app has no browser back button */}
         {standalone && app.route.name !== "home" && (
-          <button type="button" className="icon-btn -ms-2 md:hidden" onClick={() => (history.length > 1 ? history.back() : void app.navigate(app.href("/")))} aria-label={t("c.back")}>
+          <button type="button" className={`icon-btn -ms-2 ${appShell === "windows" ? "" : "md:hidden"}`} onClick={() => (history.length > 1 ? history.back() : void app.navigate(app.href("/")))} aria-label={t("c.back")}>
             <Icon name="chev" size={24} className="rotate-180" />
           </button>
         )}

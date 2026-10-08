@@ -1,0 +1,5 @@
+JanahStore.xcodeproj/
+build/
+*.ipa
+*.xcarchive
+shots/

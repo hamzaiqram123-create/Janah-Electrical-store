@@ -41,6 +41,28 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npx electron-builder --win nsis --x64 --publish never -c.extraMetadata.version=1.0.${{ github.run_number }}
 
+      - name: Check the app starts
+        # Starts the packaged app, waits for the store (or the offline page if the site is down), saves a
+        # screenshot and a report, and fails the build if the app doesn't get there.
+        run: |
+          OUT="$(cygpath -w "$PWD/smoke")"
+          "desktop/dist/win-unpacked/Janah Al Riyada.exe" --smoke-test="$OUT" &
+          for i in $(seq 1 170); do [ -f smoke/result.json ] && break; sleep 1; done
+          cat smoke/result.json
+          node -e '
+            const r = require(process.argv[1]);
+            const okUA = /JanahApp\/[\d.]+ \(windows\)/.test(r.userAgent);
+            if (!r.ok || !["store", "offline"].includes(r.page) || !okUA) { console.error("app check failed"); process.exit(1); }
+          ' "$(cygpath -w "$PWD/smoke/result.json")"
+
+      - name: Keep the check screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app-check
+          path: smoke/
+          if-no-files-found: ignore
+
       - name: Collect
         id: info
         run: |

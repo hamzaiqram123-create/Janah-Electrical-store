@@ -1,0 +1,219 @@
+# Builds the iPhone / iPad app (ios/) on GitHub's Mac servers.
+#
+#  Every run: compiles the app, starts a local copy of the store on the build machine, opens the app in an
+#  iPhone and an iPad simulator, checks it starts and keeps running on each page, and publishes the
+#  screenshots (exact App Store sizes) as a GitHub pre-release "ios-build-N".
+#
+#  When the Apple secrets below exist, it also signs the app and uploads it to App Store Connect, where it
+#  shows up in TestFlight and can be submitted for review. Secrets (Settings → Secrets and variables → Actions):
+#    APPLE_TEAM_ID        the 10-character Team ID (developer.apple.com → Account → Membership details)
+#    ASC_KEY_ID           an App Store Connect API key with the Admin role
+#                         (App Store Connect → Users and Access → Integrations → App Store Connect API)
+#    ASC_ISSUER_ID        the Issuer ID shown above the list of keys
+#    ASC_KEY_P8_BASE64    the downloaded AuthKey_<id>.p8, base64-encoded: base64 -i AuthKey_<id>.p8
+#  The app record (bundle ID sa.janah.store) must exist in App Store Connect first. See docs/STORES.md.
+name: iOS app
+
+on:
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+  BUILD: ${{ github.run_number }}
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tools
+        run: |
+          brew install xcodegen
+          xcodebuild -version
+
+      - name: Generate the Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build for the simulator
+        working-directory: ios
+        run: |
+          HOST=$(python3 -c "import json; print(json.load(open('../android/twa.json'))['host'])")
+          echo "STORE_URL=https://$HOST" >> "$GITHUB_ENV"
+          if ! xcodebuild -project JanahStore.xcodeproj -scheme JanahStore -configuration Release \
+               -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+               JANAH_STORE_URL="https://$HOST" CURRENT_PROJECT_VERSION="$BUILD" CODE_SIGNING_ALLOWED=NO \
+               build > build.log 2>&1; then
+            grep -E "error:" build.log | sort -u | head -20 | sed 's/^/::error::/'
+            tail -60 build.log
+            exit 1
+          fi
+          grep -E ": warning:" build.log | sort -u | head -10 | sed 's/^/::warning::/' || true
+          /usr/libexec/PlistBuddy -c "Print :JanahStoreURL" build/Build/Products/Release-iphonesimulator/JanahStore.app/Info.plist
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Local copy of the store
+        run: |
+          brew install postgresql@16 > /dev/null
+          PG="$(brew --prefix postgresql@16)/bin"
+          brew services start postgresql@16
+          for i in $(seq 1 40); do "$PG/pg_isready" -q -h localhost && break; sleep 1; done
+          "$PG/createdb" -h localhost janah
+          cat > .env <<EOF
+          NODE_ENV=development
+          DATABASE_URL=postgres://$(whoami)@localhost:5432/janah
+          APP_URL=http://localhost:3000
+          RUN_JOBS=false
+          SEED_SAMPLE_CATALOG=true
+          EOF
+          bun install
+          bun run build > /dev/null
+          bun run migrate
+          bun run seed
+          nohup bun src/server/index.ts > server.log 2>&1 &
+          for i in $(seq 1 40); do curl -sf http://localhost:3000/api/health > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:3000/api/health
+
+      - name: Run the app in the simulators and take screenshots
+        run: |
+          APP=ios/build/Build/Products/Release-iphonesimulator/JanahStore.app
+          mkdir -p shots
+          python3 - > devices.txt <<'PY'
+          import json, subprocess
+          runtimes = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          devices = [d for k in sorted(runtimes, reverse=True) if ".iOS-" in k for d in runtimes[k]]
+          def pick(names):
+              for n in names:
+                  for d in devices:
+                      if d["name"] == n:
+                          return d["udid"]
+              return ""
+          # 6.9-inch iPhone (1320 x 2868) and 13-inch iPad (2064 x 2752): the sizes App Store Connect asks for
+          print(pick(["iPhone 16 Pro Max", "iPhone 17 Pro Max", "iPhone 15 Pro Max"]))
+          print(pick(["iPad Pro 13-inch (M4)", "iPad Pro 13-inch (M5)", "iPad Air 13-inch (M3)", "iPad Air 13-inch (M2)"]))
+          PY
+          IPHONE=$(sed -n 1p devices.txt); IPAD=$(sed -n 2p devices.txt)
+          [ -n "$IPHONE" ] && [ -n "$IPAD" ] || { echo "::error::simulators not found"; xcrun simctl list devices available; exit 1; }
+          PRODUCT=$(curl -s http://localhost:3000/ar/products | grep -o 'href="/ar/p/[^"]*"' | head -1 | sed 's/href="\/ar\/p\///; s/"$//')
+          [ -n "$PRODUCT" ] || { echo "::error::no product found in the local store"; exit 1; }
+
+          run_on() {  # <udid> <device label>
+            local U=$1 N=$2 i=0
+            xcrun simctl boot "$U" || true
+            xcrun simctl bootstatus "$U" -b > /dev/null
+            xcrun simctl ui "$U" appearance light
+            xcrun simctl status_bar "$U" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
+              --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+            xcrun simctl install "$U" "$APP"
+            while read -r LANG_ NAME PATH_ <&3; do
+              i=$((i + 1))
+              xcrun simctl terminate "$U" sa.janah.store 2> /dev/null || true
+              xcrun simctl launch "$U" sa.janah.store -AppleLanguages "($LANG_)" -AppleLocale "${LANG_}_SA" \
+                --store-url http://localhost:3000 --start-path "$PATH_" > /dev/null
+              sleep 12
+              PID=$(xcrun simctl spawn "$U" launchctl list | awk '/UIKitApplication:sa\.janah\.store/ {print $1}' | head -1)
+              if ! [[ "$PID" =~ ^[0-9]+$ ]]; then
+                echo "::error::the app is not running on the $N after opening $PATH_"
+                xcrun simctl spawn "$U" log show --last 2m --predicate 'process == "JanahStore"' --style compact | tail -40 || true
+                exit 1
+              fi
+              xcrun simctl io "$U" screenshot "shots/$N-$i-$LANG_-$NAME.png" > /dev/null
+              echo "$N $LANG_ $PATH_: running (pid $PID)"
+            done 3<<LIST
+          ar home /ar
+          ar categories /ar/categories
+          ar products /ar/products
+          ar product /ar/p/$PRODUCT
+          en home /en
+          en product /en/p/$PRODUCT
+          ur home /ur
+          LIST
+            xcrun simctl shutdown "$U" || true
+          }
+          run_on "$IPHONE" iphone
+          run_on "$IPAD" ipad
+          grep -c "JanahApp/" server.log || true
+          ls -la shots
+
+      - name: Keep the server log
+        if: failure()
+        run: tail -60 server.log || true
+
+      - name: App Store signing ready?
+        id: apple
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          if [ -n "$APPLE_TEAM_ID" ] && [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8_BASE64" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::App Store upload skipped: the secrets APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 are not set (docs/STORES.md)."
+          fi
+
+      - name: Sign and upload to App Store Connect
+        if: steps.apple.outputs.ready == 'true'
+        working-directory: ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          KEY="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$KEY"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          if ! xcodebuild -project JanahStore.xcodeproj -scheme JanahStore -configuration Release \
+               -destination 'generic/platform=iOS' -archivePath build/JanahStore.xcarchive "${AUTH[@]}" \
+               DEVELOPMENT_TEAM="$APPLE_TEAM_ID" JANAH_STORE_URL="$STORE_URL" CURRENT_PROJECT_VERSION="$BUILD" \
+               archive > archive.log 2>&1; then
+            grep -E "error:" archive.log | sort -u | head -20 | sed 's/^/::error::/'; tail -60 archive.log; rm -f "$KEY"; exit 1
+          fi
+          sed "s/TEAM_ID/$APPLE_TEAM_ID/" ExportOptions.plist > build/ExportOptions.plist
+          if ! xcodebuild -exportArchive -archivePath build/JanahStore.xcarchive -exportOptionsPlist build/ExportOptions.plist \
+               -exportPath build/export "${AUTH[@]}" > export.log 2>&1; then
+            grep -iE "error" export.log | sort -u | head -20 | sed 's/^/::error::/'; tail -60 export.log; rm -f "$KEY"; exit 1
+          fi
+          rm -f "$KEY"
+          echo "::notice::Build $BUILD uploaded to App Store Connect. It appears under TestFlight once Apple has processed it (usually 5–30 minutes)."
+
+      - name: Collect screenshots
+        run: |
+          cd shots
+          zip -q ../app-store-screenshots-iphone.zip iphone-*.png
+          zip -q ../app-store-screenshots-ipad.zip ipad-*.png
+
+      - name: Publish the check
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-build-${{ github.run_number }}
+          name: iPhone / iPad app — build ${{ github.run_number }}
+          prerelease: true
+          files: |
+            app-store-screenshots-iphone.zip
+            app-store-screenshots-ipad.zip
+          body: |
+            The iPhone / iPad app (`ios/`) compiled, and it was opened in an iPhone 6.9" and an iPad 13" simulator against a local copy of the store: it started and kept running on every page.
+
+            The two zip files hold the screenshots at the exact sizes App Store Connect asks for (iPhone 1320 × 2868, iPad 2064 × 2752), in Arabic, English and Urdu. They show the sample catalogue; retake them after adding real products and photos (Actions → iOS app → Run workflow).
+
+            iPhone apps can only be installed from the App Store or TestFlight. Once the Apple secrets are set, each build is uploaded to App Store Connect automatically (see docs/STORES.md).

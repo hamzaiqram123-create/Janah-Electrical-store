@@ -1,0 +1,8 @@
+"loading.slow" = "Opening the store… This can take up to a minute if the server was asleep.";
+"error.offline.title" = "You're offline";
+"error.offline.text" = "Check your Wi-Fi or mobile data, then try again.";
+"error.down.title" = "The store can't be reached";
+"error.down.text" = "It may be updating. Please try again in a moment.";
+"error.retry" = "Try again";
+"ok" = "OK";
+"cancel" = "Cancel";

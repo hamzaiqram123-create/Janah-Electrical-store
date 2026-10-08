@@ -14,6 +14,7 @@ const emit = () => listeners.forEach((f) => f());
 /** Call once, as early as possible: the install prompt event can fire right after load. */
 export function initPwa() {
   if (typeof window === "undefined") return;
+  appShell(); // remember ?source= before the first in-app link drops it
   window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e as InstallPromptEvent; emit(); });
   window.addEventListener("appinstalled", () => { deferred = null; installed = true; emit(); });
   const secure = location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
@@ -22,14 +23,38 @@ export function initPwa() {
   }
 }
 
+/**
+ * The store's own apps (Google Play, App Store, Windows) open the site with `?source=android|ios|windows`
+ * and add "JanahApp/<version> (<platform>)" to the user agent. Inside them there's nothing to install, and the page needs its own
+ * back button, exactly as in an installed web app. The marker is kept for the tab's lifetime because the
+ * query string is gone after the first link.
+ */
+const SHELL_KEY = "app-shell";
+export type AppShell = "android" | "ios" | "windows";
+const SHELLS: AppShell[] = ["android", "ios", "windows"];
+export function appShell(): AppShell | null {
+  if (typeof window === "undefined") return null;
+  const ua = /\bJanahApp\/[\w.]+ \((android|ios|windows)\)/.exec(navigator.userAgent);
+  if (ua) return ua[1] as AppShell;
+  try {
+    const source = new URLSearchParams(location.search).get("source") as AppShell | null;
+    if (source && SHELLS.includes(source)) sessionStorage.setItem(SHELL_KEY, source);
+    const kept = sessionStorage.getItem(SHELL_KEY) as AppShell | null;
+    return kept && SHELLS.includes(kept) ? kept : null;
+  } catch { return null; }
+}
+
 export const isStandalone = () =>
-  typeof window !== "undefined" && (matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true);
+  typeof window !== "undefined" &&
+  (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches ||
+    (navigator as any).standalone === true || appShell() !== null);
 export const isIOS = () =>
   typeof navigator !== "undefined" && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
 export interface InstallState {
   ready: boolean;        // false during server render / before mount — render nothing install-related then
-  standalone: boolean;   // running as the installed app
+  standalone: boolean;   // running as the installed app (web app or the store's own Android / iOS / Windows app)
+  shell: AppShell | null; // which of the store's own apps, if any
   canPrompt: boolean;    // the browser offers its own install dialog
   ios: boolean;          // iPhone / iPad: install is manual (Share → Add to Home Screen)
   installed: boolean;
@@ -47,6 +72,7 @@ export function useInstall(): InstallState {
   return {
     ready,
     standalone: ready && isStandalone(),
+    shell: ready ? appShell() : null,
     canPrompt: ready && !!deferred,
     ios: ready && isIOS(),
     installed: installed,

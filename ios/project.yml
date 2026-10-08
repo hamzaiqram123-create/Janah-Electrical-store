@@ -1,0 +1,35 @@
+# Xcode project definition for XcodeGen (https://github.com/yonaskolb/XcodeGen).
+#   brew install xcodegen && cd ios && xcodegen generate   → JanahStore.xcodeproj
+# The generated project isn't committed; the GitHub build (.github/workflows/ios.yml) generates it.
+name: JanahStore
+options:
+  bundleIdPrefix: sa.janah
+  deploymentTarget:
+    iOS: "15.0"
+  developmentLanguage: ar
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    # the store's address; the GitHub build overrides it with the host in android/twa.json
+    JANAH_STORE_URL: "https://janah-alriyadah-store.onrender.com"
+targets:
+  JanahStore:
+    type: application
+    platform: iOS
+    sources:
+      - path: JanahStore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: sa.janah.store
+        PRODUCT_NAME: JanahStore
+        INFOPLIST_FILE: JanahStore/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        SUPPORTS_MACCATALYST: NO
+        LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+    scheme: {}
