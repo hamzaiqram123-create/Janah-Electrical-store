@@ -120,13 +120,11 @@ jobs:
           PRODUCT=$(python3 -c "import re, urllib.request; h = urllib.request.urlopen('http://localhost:3000/ar/products').read().decode(); m = re.search(r'href=\"/ar/p/([^\"]+)\"', h); print(m.group(1) if m else '')")
           [ -n "$PRODUCT" ] || { echo "::error::no product found in the local store"; exit 1; }
           log "product: $PRODUCT"
-          # start both simulators now; booting takes a while the first time
-          xcrun simctl boot "$IPHONE" || true
-          xcrun simctl boot "$IPAD" || true
 
           run_on() {  # <udid> <device label>
             local U=$1 N=$2 i=0
-            log "$N: waiting for boot"
+            # one simulator at a time: a second one booting alongside slows rendering and spoils screenshots
+            log "$N: booting"
             limit 900 xcrun simctl bootstatus "$U" -b > /dev/null
             log "$N: booted"
             xcrun simctl ui "$U" appearance light || true
@@ -139,7 +137,7 @@ jobs:
               xcrun simctl terminate "$U" sa.janah.store > /dev/null 2>&1 || true
               limit 120 xcrun simctl launch "$U" sa.janah.store -AppleLanguages "($LANG_)" -AppleLocale "${LANG_}_SA" \
                 --store-url http://localhost:3000 --start-path "$PATH_" > /dev/null < /dev/null
-              sleep 12
+              sleep 16
               PID=$(limit 60 xcrun simctl spawn "$U" launchctl list < /dev/null | awk '/UIKitApplication:sa\.janah\.store/ && !p { print $1; p = 1 }')
               if ! [[ "$PID" =~ ^[0-9]+$ ]]; then
                 log "$N $LANG_ $PATH_: NOT RUNNING"
