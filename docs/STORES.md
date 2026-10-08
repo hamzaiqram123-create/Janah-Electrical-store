@@ -33,9 +33,8 @@ prepared in this repository:
    privacy policy: `https://janah-alriyadah-store.onrender.com/ar/page/privacy`.
 4. **Replace the sample catalogue** with real products and photos, then retake the screenshots (below).
 5. **Register as an organisation, not an individual**, on both stores. You need a D-U-N-S number for the
-   company (free from Dun & Bradstreet, takes a few days). The store page then shows the company name as the
-   seller. Google doesn't apply its 12-tester rule to organisation accounts, and Apple expects an app for a
-   business to come from that business.
+   company (free from Dun & Bradstreet, takes a few days). Both stores then show the company, not a person,
+   as the seller, and Google's 12-tester rule (below) applies only to personal accounts.
 6. **Online payments in the listing:** the texts mention cash on delivery only. When Moyasar is switched on,
    add a line such as "Pay by mada, Visa or Mastercard". Physical goods are paid through your own checkout,
    so neither store's in-app purchase system is involved.
@@ -205,8 +204,8 @@ Windows server and checks that it opens before publishing.
 - **Sharing it:** link to the release, or put the file on the website or in WhatsApp. Windows 10 and 11,
   64-bit.
 - **"Windows protected your PC":** the installer isn't code-signed yet, so SmartScreen asks once. Choose
-  *More info → Run anyway*. A code-signing certificate removes this: Microsoft's Artifact Signing service, or
-  an OV certificate from a certificate authority. Once you have one, signing can be added to the build.
+  *More info → Run anyway*. A code-signing certificate removes this, either from Microsoft's Azure signing
+  service or from a certificate authority. Once you have one, signing can be added to the build.
 - **Microsoft Store (optional):** create a Partner Center account. The quickest route is the web-app
   package from [PWABuilder](https://www.pwabuilder.com): enter the live site, choose Windows, and Microsoft
   signs the package. Submitting the `.exe` itself requires it to be code-signed first.

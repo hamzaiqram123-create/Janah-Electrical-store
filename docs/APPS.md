@@ -134,12 +134,19 @@ In Chromium at phone, tablet and desktop sizes:
   install offers and the back button works.
 - Signing out clears the stored pages.
 
-The Android build (`android-v1.0.1`) was built on GitHub and checked:
+The store apps were built on GitHub and checked:
 
-- `apksigner verify` passes, with an APK Signature Scheme v2 block.
-- The package is `sa.janah.store`, with Arabic, English and Urdu names and start pages, and the
-  site-verification statement.
-- The checksum matches the published `.sha256`.
+- **Android** (`android-v1.0.4`): `apksigner verify` passes (APK Signature Scheme v2). Package
+  `sa.janah.store`, target Android 16 (API 36), with Arabic, English and Urdu names and start pages and the
+  site-verification statement. The `.aab` for Google Play verifies with `jarsigner` under the upload key.
+- **iPhone / iPad** (`ios-build-N`): compiles with Xcode 26. It ran against a local copy of the store in an
+  iPhone 6.9" and an iPad 13" simulator, in Arabic, English and Urdu, and stayed running on the home,
+  categories, listing and product pages. The screenshots show the store full-screen under the status bar,
+  the back button on inner pages, and no install offers.
+- **Windows** (`windows-v1.0.2`): the build starts the packaged app on a Windows server. It checks that the
+  app reaches the store (or its offline page) and identifies itself as the Windows app.
+- In Chromium: inside each store app (Android, iPhone, iPad, Windows) the site shows no install offers and
+  shows the back button on inner pages. Ordinary browsers keep the install offers.
 
-Not tested here: installing on physical Android, iPhone, Windows and Mac devices, and the store
-packaging steps. Those need the live HTTPS site.
+Not tested here: installing on physical Android, iPhone, Windows and Mac devices, and the store review
+itself. Those need the live HTTPS site and the shop's developer accounts.
