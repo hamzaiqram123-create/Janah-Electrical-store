@@ -1,0 +1,16 @@
+Janah Al Riyada Co. (شركة جناح الريادة) is an electrical supplies retailer in Saudi Arabia. This app is its
+shop: customers browse switches, sockets, lighting, cables and breakers, order for delivery anywhere in the
+Kingdom (or pick up from the shop), track orders, download VAT tax invoices and request returns.
+
+Native features of the app:
+- Native launch, loading, offline and error screens in Arabic, English and Urdu, following the device language.
+- Tax invoices print through the iOS print sheet (print or save as PDF).
+- Exports and attachments are saved through the share sheet (Files, AirDrop, Mail).
+- Phone, e-mail, WhatsApp and map links open in their own apps; other websites open in an in-app Safari view.
+- Swipe from the edge to go back, pull to refresh, Dynamic Type in the native screens.
+
+Account: browsing and guest checkout work without an account. The demo account above shows the order history,
+invoices and saved addresses. Account deletion: Account → Delete account (asks for the password).
+
+Payments: only physical goods are sold. Customers pay cash on delivery, or by card on the payment provider's
+page when online payment is enabled. No digital goods or subscriptions.

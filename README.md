@@ -17,7 +17,7 @@ in the code: the sample catalogue is inserted by the seed script and can be left
 - [Tests](#tests)
 - [Project layout](#project-layout)
 - [Known limits](#known-limits)
-- More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/APPS.md](docs/APPS.md), [docs/API.md](docs/API.md), [docs/ZATCA.md](docs/ZATCA.md)
+- More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/APPS.md](docs/APPS.md), [docs/STORES.md](docs/STORES.md), [docs/API.md](docs/API.md), [docs/ZATCA.md](docs/ZATCA.md)
 
 ## Stack
 
@@ -40,13 +40,21 @@ Only five npm packages are used at runtime: `react`, `react-dom`, `zod`, `tailwi
 
 ## Apps for phones, tablets and computers
 
-The store and the back office both install as apps (Progressive Web App): Android, iPhone/iPad,
-Windows, Mac, ChromeOS. They come from the same code as the website. Customers get a home-screen icon,
-a full-screen window, shortcuts, a back button in app mode and offline viewing of pages they've
-opened. The site offers the install itself (banner on phones, footer, menu), with step-by-step help on
-iPhone. An Android **.apk** is built by GitHub (`android/`, published under the repository's Releases).
-Google Play, Microsoft Store and App Store packages can be generated from the live site. See
-[docs/APPS.md](docs/APPS.md).
+The store and the back office both install from the website as apps (Progressive Web App) on Android,
+iPhone/iPad, Windows, Mac and ChromeOS. Customers get a home-screen icon, a full-screen window, shortcuts, a
+back button in app mode and offline viewing of pages they've opened. The site offers the install itself
+(banner on phones, footer, menu), with step-by-step help on iPhone. See [docs/APPS.md](docs/APPS.md).
+
+There are also store apps, built by GitHub Actions and published under the repository's Releases:
+
+| | Folder | Output |
+|---|---|---|
+| Android (Google Play) | `android/` | `.apk` to install directly, `.aab` for Google Play |
+| iPhone / iPad (App Store) | `ios/` | built and checked on GitHub's Mac servers; uploaded to App Store Connect once the Apple keys are added |
+| Windows | `desktop/` | `janah-alriyadah-setup-<version>.exe` installer |
+
+Listing texts, graphics and the step-by-step publishing guide for each store are in `store/` and
+[docs/STORES.md](docs/STORES.md).
 
 ## Run it locally
 
@@ -140,7 +148,7 @@ gateway or e-mail are still missing.
 
 ```bash
 bun test              # unit tests: pricing and VAT, barcodes, QR/TLV, phone numbers, translations
-bun run test:e2e      # 318 checks against a running server + database (see below)
+bun run test:e2e      # 331 checks against a running server + database (see below)
 ```
 
 `bun run test:e2e` drives the real HTTP API end to end: registration and password reset,

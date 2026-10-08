@@ -89,50 +89,21 @@ phone's browser engine, with a WebView fallback for phones without one. GitHub b
   Add the secrets `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD` under GitHub **Settings →
   Secrets and variables → Actions**. Keep `janah.jks` and its password safe: they're needed for every
   future update.
-- **Google Play:** upload an `.aab` instead of the `.apk` (`gradle bundleRelease`), or use PWABuilder
-  as described below.
+- **Google Play:** each release also has the `.aab` that Google Play takes. The app targets Android 16
+  (API level 36), as Google Play requires. Publishing steps: [STORES.md](STORES.md#google-play).
 
 ## Publishing in the app stores (optional)
 
-Installing from the website already works on every device without any store. Listing in a store adds
-discoverability and the familiar "Get it on Google Play" path. You need the **live HTTPS site first**,
-because the store packages open it.
+Installing from the website already works on every device without any store. Store listings add
+discoverability and the familiar "Get it on Google Play" and "Download on the App Store" path.
 
-[PWABuilder](https://www.pwabuilder.com) (by Microsoft, free) reads the site's manifest and produces the
-store packages. Enter the store's address, then:
+This repository has a native app project for each store: `android/` (Google Play), `ios/` (App Store,
+built and uploaded from GitHub without a Mac) and `desktop/` (Windows installer). The listing texts,
+graphics, form answers and step-by-step instructions are in [STORES.md](STORES.md).
 
-### Google Play (Android)
-
-1. In PWABuilder choose **Android → Google Play**. Pick a package ID you'll keep forever (for example
-   `sa.janah.store`). Download the package: an `.aab` to upload, plus a signing key. **Back up the key.**
-2. Create a Google Play developer account (one-time registration fee) and a new app. Upload the `.aab`
-   and complete the store listing, content rating and data-safety form.
-3. Play Console → **App integrity** (app signing) shows the **SHA-256 certificate fingerprint**. Set on the server:
-   ```ini
-   ANDROID_APP_PACKAGE=sa.janah.store
-   ANDROID_APP_SHA256=AA:BB:…   # several fingerprints may be comma-separated (upload key and Play signing key)
-   ```
-   The site then serves `/.well-known/assetlinks.json`. That proves the app and site belong together,
-   and the app opens without any browser bar. Without it the app still works, but shows a thin address bar.
-4. Physical goods may be paid through your own checkout (Moyasar, cash on delivery). Google Play
-   Billing is only required for digital goods.
-
-### Microsoft Store (Windows)
-
-In PWABuilder choose **Windows**. Reserve the app name in Microsoft Partner Center, enter the identity
-values it gives you, download the package and submit it in Partner Center.
-
-### Apple App Store (iPhone / iPad)
-
-PWABuilder's **iOS** package is an Xcode project that wraps the site. Publishing it requires:
-
-- the Apple Developer Program (annual fee);
-- a Mac with Xcode to build and upload it;
-- Apple's review. Apple may reject apps that are only a website in a wrapper (App Review Guideline 4.2,
-  minimum functionality), so expect to justify it or add native features such as push notifications.
-
-Until then, iPhone and iPad customers install from Safari (Share → Add to Home Screen), and the store
-walks them through it.
+Inside these apps the website knows it's running in the shop's own app. They open it with
+`?source=android|ios|windows` and add `JanahApp/<version> (<platform>)` to the user agent. So the site shows
+no "install the app" offers there, and inner pages get the in-page back button.
 
 ## Files and settings
 

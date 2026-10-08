@@ -7,3 +7,9 @@ storage/
 backups/
 *.log
 .DS_Store
+
+# signing keys never go into the repository
+*.jks
+*.keystore
+*.p8
+*.p12

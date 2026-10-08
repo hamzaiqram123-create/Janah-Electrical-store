@@ -27,12 +27,12 @@ def twaRes = new File(buildDir, "generated/twa/res")
 
 android {
     namespace "sa.janah.store"
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId twa.packageId
         minSdk 21
-        targetSdk 35
+        targetSdk 36
         versionCode code
         versionName "${twa.versionName}.${code}"
         // the launcher label and start page follow the phone's language (values/, values-en/, values-ur/)
