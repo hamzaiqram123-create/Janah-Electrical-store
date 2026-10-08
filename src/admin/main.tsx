@@ -6,6 +6,8 @@ import { api, ApiError, currentLang } from "../web/lib/api";
 import { Ctx, formatDate, formatMoney, useApp, type AppCtx, type Toast } from "../web/lib/ctx";
 import { Icon } from "../web/ui/Icon";
 import { Button, Field, Input, useForm } from "../web/ui/kit";
+import { clearCachedPages, initPwa } from "../web/lib/pwa";
+import { useInstallAction } from "../web/parts/InstallApp";
 import { AdminContext, type AdminCtx, type Me } from "./core";
 import { RESOURCES, ResourcePage } from "./resource";
 import Dashboard from "./pages/Dashboard";
@@ -181,6 +183,7 @@ function Shell({ me, onLogout }: { me: Me; onLogout: () => void }) {
                   {LANGS.map((l) => <option key={l} value={l}>{LANG_NAMES[l]}</option>)}
                 </select>
                 <button type="button" className="icon-btn" onClick={app.toggleTheme} aria-label={t(app.theme === "dark" ? "c.theme_light" : "c.theme_dark")}><Icon name={app.theme === "dark" ? "sun" : "moon"} size={18} /></button>
+                <AdminInstall />
                 {can("dashboard.view") && (
                   <a href="/admin/notifications" onClick={(e) => { e.preventDefault(); go("/admin/notifications"); }} className="icon-btn relative" aria-label={t("a.nav.notifications")}>
                     <Icon name="bell" size={18} />{unread > 0 && <span className="absolute end-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
@@ -240,7 +243,7 @@ function AdminApp({ dict, lang }: { dict: Dict[]; lang: Lang }) {
     money: (h) => formatMoney(lang, h), date: (v, withTime) => formatDate(lang, v, withTime),
   }), [lang, t, theme, toast]);
 
-  const logout = async () => { await api("/api/auth/logout", { body: {} }).catch(() => {}); setMe(null); };
+  const logout = async () => { await api("/api/auth/logout", { body: {} }).catch(() => {}); clearCachedPages(); setMe(null); };
 
   return (
     <Ctx.Provider value={app}>
@@ -252,6 +255,15 @@ function AdminApp({ dict, lang }: { dict: Dict[]; lang: Lang }) {
   );
 }
 
+/** Install the back office as its own app (tablet at the counter, staff phones, the shop PC). */
+function AdminInstall() {
+  const { t } = useApp();
+  const { visible, run, modal } = useInstallAction();
+  if (!visible) return null;
+  return <><button type="button" className="icon-btn" onClick={() => void run()} aria-label={t("app.install")} title={t("app.install")}><Icon name="device" size={18} /></button>{modal}</>;
+}
+
+initPwa();
 const langAttr = currentLang();
 const lang: Lang = isLang(langAttr) ? langAttr : "ar";
 const base = { ar: () => import("../shared/i18n/ar").then((m) => m.ar), en: () => import("../shared/i18n/en").then((m) => m.en), ur: () => import("../shared/i18n/ur").then((m) => m.ur) };

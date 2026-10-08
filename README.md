@@ -17,7 +17,7 @@ in the code: the sample catalogue is inserted by the seed script and can be left
 - [Tests](#tests)
 - [Project layout](#project-layout)
 - [Known limits](#known-limits)
-- More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/API.md](docs/API.md), [docs/ZATCA.md](docs/ZATCA.md)
+- More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/APPS.md](docs/APPS.md), [docs/API.md](docs/API.md), [docs/ZATCA.md](docs/ZATCA.md)
 
 ## Stack
 
@@ -37,6 +37,15 @@ Only five npm packages are used at runtime: `react`, `react-dom`, `zod`, `tailwi
 > written in could not download npm packages and everything here had to be run and
 > tested before delivery. The architecture is the same shape (server-rendered React,
 > typed API, relational schema), and nothing is tied to a hosting vendor.
+
+## Apps for phones, tablets and computers
+
+The store and the back office both install as apps (Progressive Web App): Android, iPhone/iPad,
+Windows, Mac, ChromeOS. They come from the same code as the website. Customers get a home-screen icon,
+a full-screen window, shortcuts, a back button in app mode and offline viewing of pages they've
+opened. The site offers the install itself (banner on phones, footer, menu), with step-by-step help on
+iPhone. Google Play, Microsoft Store and App Store packages can be generated from the live site. See
+[docs/APPS.md](docs/APPS.md).
 
 ## Run it locally
 

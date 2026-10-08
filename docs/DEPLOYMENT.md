@@ -334,6 +334,7 @@ Checked before delivery, on Bun 1.4 and PostgreSQL 16:
 | `bun run test:e2e` (318 API checks: auth, checkout, stock, concurrency, invoices, returns, POS, permissions, CSRF, uploads, exports) | Pass |
 | Storefront purchase through a real browser: Arabic mobile, Urdu mobile, English desktop, Arabic dark mode | Pass, no layout overflow, no script errors |
 | Back office through a real browser: all 34 screens load; POS sale by barcode, order fulfilment with tracking, product creation with photo upload, stock movement, label printing, coupon create/delete, restricted-role navigation | Pass |
+| Installable app (docs/APPS.md): Chrome installability check for store and back office, service worker, offline pages, install banner and iPhone steps, app mode | Pass (32 checks) |
 | Online payment flow against a local stand-in that mimics Moyasar's documented API (success, failure, amount mismatch, forged webhook, expiry, partial and full refund, gateway outage) | Pass |
 | Barcode output compared with an independent encoder's tables (EAN-13, Code 128) | Identical |
 | ZATCA QR payload decoded by an independent QR reader | All five fields correct |

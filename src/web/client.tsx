@@ -1,6 +1,9 @@
 import { hydrateRoot } from "react-dom/client";
 import { App } from "./App";
 import type { Payload } from "./lib/ctx";
+import { initPwa } from "./lib/pwa";
+
+initPwa();
 
 const payload = JSON.parse(document.getElementById("__DATA__")!.textContent!) as Payload;
 // Only the active language's dictionary is downloaded.

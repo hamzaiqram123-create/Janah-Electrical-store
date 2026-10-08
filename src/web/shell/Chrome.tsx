@@ -4,17 +4,19 @@ import { api } from "../lib/api";
 import { useApp } from "../lib/ctx";
 import { Glyph, Icon } from "../ui/Icon";
 import { Link, ProductImage } from "../ui/kit";
+import { useInstall } from "../lib/pwa";
+import { GetTheApp, InstallMenuItem } from "../parts/InstallApp";
 
 export function Logo({ onDark = true }: { onDark?: boolean }) {
   const { shell } = useApp();
   return (
-    <span className="flex items-center gap-2.5">
+    <span className="flex min-w-0 items-center gap-2.5">
       <svg viewBox="0 0 32 32" width="36" height="36" aria-hidden="true" className="shrink-0">
         <rect width="32" height="32" rx="5" fill="#e39a5b" />
         <path d="M18 4 8 18h7l-2 10 11-15h-7z" fill="#17202a" />
       </svg>
-      <span className="leading-tight">
-        <span className={`block text-lg font-bold ${onDark ? "text-header-fg" : "text-fg"}`}>{shell.settings.store.name}</span>
+      <span className="min-w-0 leading-tight">
+        <span className={`block truncate text-lg font-bold ${onDark ? "text-header-fg" : "text-fg"}`}>{shell.settings.store.name}</span>
       </span>
     </span>
   );
@@ -122,9 +124,10 @@ export function Header() {
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [cats]);
   const store = shell.settings.store;
+  const { standalone } = useInstall();
 
   return (
-    <header className="no-print sticky top-0 z-40 bg-header text-header-fg md:static">
+    <header className="no-print sticky top-0 z-40 bg-header pt-[env(safe-area-inset-top)] text-header-fg md:static">
       <div className="hidden border-b border-header-line text-[13px] md:block">
         <div className="container-x flex h-9 items-center justify-between gap-4">
           <p className="flex items-center gap-4 opacity-85">
@@ -144,15 +147,21 @@ export function Header() {
       </div>
 
       <div className="container-x flex h-14 items-center gap-3 md:h-[72px] md:gap-6">
-        <button type="button" className="icon-btn -ms-2 md:hidden" onClick={() => setMenu(true)} aria-label={t("nav.menu")}><Icon name="menu" size={24} /></button>
-        <Link to="/" aria-label={store.name} className="shrink-0"><Logo /></Link>
+        {/* the installed app has no browser back button */}
+        {standalone && app.route.name !== "home" && (
+          <button type="button" className="icon-btn -ms-2 md:hidden" onClick={() => (history.length > 1 ? history.back() : void app.navigate(app.href("/")))} aria-label={t("c.back")}>
+            <Icon name="chev" size={24} className="rotate-180" />
+          </button>
+        )}
+        <button type="button" className={`icon-btn md:hidden ${standalone && app.route.name !== "home" ? "" : "-ms-2"}`} onClick={() => setMenu(true)} aria-label={t("nav.menu")}><Icon name="menu" size={24} /></button>
+        <Link to="/" aria-label={store.name} className="min-w-0 shrink"><Logo /></Link>
         <div className="hidden flex-1 md:block"><SearchBox /></div>
         <nav className="ms-auto flex items-center md:ms-0 md:gap-1" aria-label={t("nav.account_nav")}>
           <Link to={shell.user ? "/account" : "/login"} className="hidden h-11 items-center gap-2 rounded-md px-3 hover:bg-white/10 md:flex">
             <Icon name="user" />
             <span className="max-w-32 truncate text-sm leading-tight">{shell.user ? (shell.user.name || t("nav.account")) : t("nav.login")}</span>
           </Link>
-          <Link to="/account/wishlist" className="icon-btn hover:bg-white/10" aria-label={t("nav.wishlist")}><Icon name="heart" /></Link>
+          <Link to="/account/wishlist" className={`icon-btn hover:bg-white/10 ${standalone && app.route.name !== "home" ? "max-md:hidden" : ""}`} aria-label={t("nav.wishlist")}><Icon name="heart" /></Link>
           <Link to="/cart" className="relative flex h-11 items-center gap-2 rounded-md px-2.5 hover:bg-white/10" aria-label={t("nav.cart_n", { n: shell.cart_count })}>
             <Icon name="cart" size={22} />
             <span className="hidden text-sm md:inline">{t("nav.cart")}</span>
@@ -213,6 +222,7 @@ export function Header() {
               <Link to="/track" className="flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-surface-2"><Icon name="truck" />{t("nav.track")}</Link>
               <Link to="/contact" className="flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-surface-2"><Icon name="chat" />{t("nav.contact")}</Link>
               <Link to="/faq" className="flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-surface-2"><Icon name="help" />{t("nav.faq")}</Link>
+              <InstallMenuItem />
             </nav>
             <div className="flex items-center justify-between border-t border-line bg-header p-3 text-header-fg">
               <LangSwitch />
@@ -262,7 +272,7 @@ export function WhatsAppButton() {
   if (!n) return null;
   return (
     <a href={`https://wa.me/${n}`} target="_blank" rel="noopener noreferrer" aria-label={t("c.whatsapp")}
-      className="no-print fixed end-4 bottom-[76px] z-30 grid size-12 place-items-center rounded-full bg-[#1f8a4c] text-white shadow-lg hover:bg-[#19733f] md:bottom-6">
+      className="no-print fixed end-4 bottom-[calc(76px+env(safe-area-inset-bottom)+var(--app-banner,0px))] z-30 grid size-12 place-items-center rounded-full bg-[#1f8a4c] text-white shadow-lg hover:bg-[#19733f] md:bottom-6">
       <Icon name="whatsapp" size={26} />
     </a>
   );
@@ -283,6 +293,7 @@ export function Footer() {
             {s.vat_number && <div className="flex gap-2"><dt>{t("foot.vat_no")}</dt><dd dir="ltr" className="tabular-nums">{s.vat_number}</dd></div>}
             {s.cr_number && <div className="flex gap-2"><dt>{t("foot.cr_no")}</dt><dd dir="ltr" className="tabular-nums">{s.cr_number}</dd></div>}
           </dl>
+          <GetTheApp />
         </div>
         <nav aria-label={t("foot.shop")}>
           <h2 className="mb-3 font-bold">{t("foot.shop")}</h2>

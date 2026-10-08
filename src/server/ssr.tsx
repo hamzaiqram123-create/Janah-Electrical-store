@@ -8,6 +8,7 @@ import { matchRoute, type PageMeta, type RouteName } from "../shared/routes";
 import { loaders, shellData } from "./loaders";
 import { App } from "../web/App";
 import { dicts, tr } from "../shared/i18n";
+import { appHeadTags } from "./pwa";
 
 const DIST = join(import.meta.dir, "../../dist");
 let manifest: { app: string; admin: string; css: string } | null = null;
@@ -46,8 +47,8 @@ ${alternates}
 <meta property="og:title" content="${esc(meta.title)}">${meta.description ? `<meta property="og:description" content="${esc(meta.description)}">` : ""}
 <meta property="og:url" content="${esc(canonical)}"><meta property="og:locale" content="${ogLocale}">
 ${meta.image ? `<meta property="og:image" content="${esc(meta.image)}"><meta name="twitter:card" content="summary_large_image">` : `<meta name="twitter:card" content="summary">`}
-<meta name="theme-color" content="#17202a">
 <link rel="icon" href="${FAVICON}">
+${appHeadTags(lang, "store")}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="${FONTS}">
 <link rel="stylesheet" href="/assets/${a.css}">
@@ -98,9 +99,10 @@ export function adminShell(c: Ctx): Response {
   const doc = `<!doctype html>
 <html lang="${HTML_LANG[lang]}" dir="${dirOf(lang)}" data-lang="${lang}">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(tr(lang, "admin.title"))}</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="${FAVICON}">
+${appHeadTags(lang, "admin")}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="${FONTS}"><link rel="stylesheet" href="/assets/${a.css}">
 <script nonce="${c.nonce}">(function(){try{var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);if(m&&m[1]==="dark")document.documentElement.classList.add("dark")}catch(e){}})()</script>

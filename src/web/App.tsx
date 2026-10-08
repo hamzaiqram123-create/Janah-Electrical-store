@@ -3,6 +3,7 @@ import type { Dict } from "../shared/i18n/format";
 import type { RouteName } from "../shared/routes";
 import { AppProvider, useApp, type Payload } from "./lib/ctx";
 import { Footer, Header, MobileNav, WhatsAppButton } from "./shell/Chrome";
+import { InstallBanner, OfflineBar } from "./parts/InstallApp";
 import Home from "./pages/Home";
 import Listing, { BrandsIndex, CategoriesIndex } from "./pages/Listing";
 import ProductPage from "./pages/Product";
@@ -37,12 +38,14 @@ function Layout() {
     <>
       {app.pending && <div className="route-bar" aria-hidden="true" />}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-[90] focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:text-fg focus:shadow-lg">{app.t("c.skip")}</a>
+      <OfflineBar />
       <Header />
       <main id="main" className="min-h-[55vh]">
         <Page key={app.route.path} />
       </main>
       <Footer />
       <MobileNav />
+      <InstallBanner />
       <WhatsAppButton />
     </>
   );

@@ -39,6 +39,10 @@ const schema = z.object({
   WHATSAPP_PROVIDER: z.enum(["none", "meta"]).default("none"),
   WHATSAPP_TOKEN: opt, WHATSAPP_PHONE_NUMBER_ID: opt,
 
+  // Installed app: Google Play package (Trusted Web Activity) — see docs/APPS.md
+  ANDROID_APP_PACKAGE: opt,     // e.g. sa.janah.store
+  ANDROID_APP_SHA256: opt,      // signing certificate SHA-256 fingerprint(s), comma-separated
+
   // ZATCA e-invoicing (Fatoora)
   ZATCA_ENV: z.enum(["disabled", "sandbox", "simulation", "production"]).default("disabled"),
   ZATCA_API_BASE: opt,

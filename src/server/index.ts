@@ -18,6 +18,7 @@ import { adminShell, loadPage, renderPage } from "./ssr";
 import { shellData } from "./loaders";
 import { robotsTxt, sitemapXml } from "./seo";
 import { serveMedia } from "./services/storage";
+import { assetLinks, offlinePage, servePublic, serviceWorker, webManifest } from "./pwa";
 import { startJobs } from "./jobs";
 import { DEFAULT_LANG, isLang, LANGS } from "../shared/constants";
 import { matchRoute } from "../shared/routes";
@@ -82,7 +83,16 @@ async function handle(c: Ctx): Promise<Response> {
   if (path.startsWith("/media/")) return (await serveMedia(decodeURIComponent(path.slice(7)))) ?? new Response("Not found", { status: 404 });
   if (path === "/robots.txt") return new Response(robotsTxt(), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" } });
   if (path === "/sitemap.xml") return new Response(await sitemapXml(), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=600" } });
-  if (path === "/favicon.ico") return new Response(null, { status: 204 });
+  if (path === "/favicon.ico") return (await servePublic("/icons/favicon-32.png"))!;
+  // installable app
+  if (path.startsWith("/icons/") || path.startsWith("/screenshots/")) return (await servePublic(path)) ?? new Response("Not found", { status: 404 });
+  if (path === "/sw.js") return serviceWorker();
+  if (path === "/offline.html") return offlinePage();
+  if (path === "/manifest.webmanifest" || path === "/admin.webmanifest") {
+    const q = c.query.get("lang");
+    return webManifest(isLang(q) ? q : isLang(c.cookies.lang) ? c.cookies.lang : DEFAULT_LANG, path === "/admin.webmanifest" ? "admin" : "store");
+  }
+  if (path === "/.well-known/assetlinks.json") return assetLinks() ?? new Response("Not found", { status: 404 });
 
   await authenticate(c);
 

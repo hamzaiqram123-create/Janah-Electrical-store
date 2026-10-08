@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { clearCachedPages } from "../lib/pwa";
 import { LANG_NAMES, LANGS } from "../../shared/constants";
 import { api } from "../lib/api";
 import { useApp } from "../lib/ctx";
@@ -18,6 +19,7 @@ function AccountLayout({ title, children, action }: { title: string; children: R
   ];
   const logout = async () => {
     await api("/api/auth/logout", { body: {} }).catch(() => {});
+    clearCachedPages();
     window.location.href = app.href("/");
   };
   return (
