@@ -1,0 +1,43 @@
+# Single-server deployment: PostgreSQL + the store. Put a TLS-terminating reverse proxy
+# (Caddy, nginx, a cloud load balancer) in front of port 3000 — see docs/DEPLOYMENT.md.
+#
+#   cp .env.example .env        # fill it in; POSTGRES_PASSWORD below must match DATABASE_URL
+#   docker compose up -d --build
+#   docker compose exec app bun run seed
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: janah
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: janah
+      TZ: Asia/Riyadh
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U janah -d janah"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://janah:${POSTGRES_PASSWORD}@db:5432/janah
+      UPLOAD_DIR: /data/uploads
+      TRUST_PROXY: "true"
+    ports:
+      - "127.0.0.1:3000:3000"   # only reachable from the reverse proxy on the same host
+    volumes:
+      - uploads:/data/uploads
+
+volumes:
+  pgdata:
+  uploads:

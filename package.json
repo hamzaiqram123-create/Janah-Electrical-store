@@ -1,0 +1,33 @@
+{
+  "name": "janah-alriyadah-store",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "شركة جناح الريادة — Saudi electrical products e-commerce platform (storefront, REST API, admin dashboard)",
+  "engines": { "bun": ">=1.2.0" },
+  "scripts": {
+    "dev": "bun scripts/dev.ts",
+    "build": "bun scripts/build.ts",
+    "start": "NODE_ENV=production bun src/server/index.ts",
+    "migrate": "bun scripts/migrate.ts",
+    "seed": "bun scripts/seed.ts",
+    "admin:create": "bun scripts/create-admin.ts",
+    "test": "bun test",
+    "test:e2e": "bun scripts/e2e.ts",
+    "backup": "scripts/backup.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sharp": ">=0.33.5",
+    "tailwindcss": "^4.1.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.9.0"
+  }
+}
