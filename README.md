@@ -44,7 +44,8 @@ The store and the back office both install as apps (Progressive Web App): Androi
 Windows, Mac, ChromeOS. They come from the same code as the website. Customers get a home-screen icon,
 a full-screen window, shortcuts, a back button in app mode and offline viewing of pages they've
 opened. The site offers the install itself (banner on phones, footer, menu), with step-by-step help on
-iPhone. Google Play, Microsoft Store and App Store packages can be generated from the live site. See
+iPhone. An Android **.apk** is built by GitHub (`android/`, published under the repository's Releases).
+Google Play, Microsoft Store and App Store packages can be generated from the live site. See
 [docs/APPS.md](docs/APPS.md).
 
 ## Run it locally
