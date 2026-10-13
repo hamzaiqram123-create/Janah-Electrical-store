@@ -112,7 +112,7 @@ export const ar: Record<string, string> = {
   "a.f.city_hint": "اختر مدينة لتخصيصها وحدها", "a.f.fee": "الرسوم", "a.f.available": "متاحة", "a.f.available_hint": "أزل العلامة لإيقاف الطريقة لهذه الوجهة", "a.f.destination": "الوجهة",
   "a.f.permissions": "الصلاحيات", "a.f.system": "أساسي", "a.f.order": "الطلب", "a.f.customer": "العميل", "a.f.units": "القطع", "a.f.payment": "الدفع", "a.f.status": "الحالة", "a.f.channel": "القناة",
   "a.f.product": "المنتج", "a.f.unit_price": "سعر الوحدة", "a.f.stock_now": "المخزون الآن", "a.f.amount": "المبلغ", "a.f.tracking_url": "رابط التتبع", "a.f.category": "القسم", "a.f.brand": "العلامة التجارية",
-  "a.f.price": "السعر", "a.f.stock": "المخزون", "a.f.sold": "المباع", "a.f.featured": "مختار", "a.f.is_new": "تمييزه كجديد", "a.f.best_seller": "الأكثر مبيعًا", "a.f.barcode_hint": "EAN-13 أو أي رمز يقرؤه القارئ لديك",
+  "a.f.price": "السعر", "a.f.stock": "المخزون", "a.f.sold": "المباع", "a.f.sold_30d": "المباع (آخر 30 يومًا)", "a.f.featured": "مختار", "a.f.is_new": "تمييزه كجديد", "a.f.best_seller": "الأكثر مبيعًا", "a.f.barcode_hint": "EAN-13 أو أي رمز يقرؤه القارئ لديك",
   "a.f.selling_price": "سعر البيع", "a.f.discount_price": "سعر الخصم", "a.f.purchase_price": "سعر الشراء", "a.f.vat_rate": "نسبة الضريبة", "a.f.spec_label": "المواصفة", "a.f.spec_value": "القيمة",
   "a.f.video": "فيديو المنتج", "a.f.video_hint": "رابط YouTube أو Vimeo، أو ارفع ملف MP4 / WebM حتى 60 ميجابايت", "a.f.seo_title": "عنوان الصفحة", "a.f.seo_description": "وصف البحث", "a.f.keywords": "كلمات البحث",
   "a.f.keywords_hint": "كلمات أخرى يستخدمها العملاء لهذا المنتج بأي لغة", "a.f.initial_stock": "المخزون الافتتاحي", "a.f.min_stock": "حد التنبيه", "a.f.min_stock_hint": "يصلك تنبيه عند وصول المخزون إلى هذا الحد",
