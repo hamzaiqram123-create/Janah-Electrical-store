@@ -222,12 +222,14 @@ export function registerCatalogAdminApi(r: Router) {
     if (c.query.get("low") === "1") where.push("COALESCE(i.quantity, 0) <= COALESCE(i.min_stock, 0)");
     if (c.query.get("out") === "1") where.push("COALESCE(i.quantity, 0) = 0");
     const from = `FROM products p LEFT JOIN inventory i ON i.product_id = p.id WHERE ${where.join(" AND ")}`;
-    const select = `SELECT p.id, p.sku, p.barcode, p.name_ar, p.name_en, p.purchase_price, p.effective_price, COALESCE(i.quantity, 0) AS quantity, COALESCE(i.min_stock, 0) AS min_stock, i.location, i.updated_at`;
+    const select = `SELECT p.id, p.sku, p.barcode, p.name_ar, p.name_en, p.purchase_price, p.effective_price, COALESCE(i.quantity, 0) AS quantity, COALESCE(i.min_stock, 0) AS min_stock, i.location, i.updated_at,
+      -- net units sold in the last 30 days (sales minus cancellations and returns)
+      COALESCE((SELECT -sum(it.quantity) FROM inventory_transactions it WHERE it.product_id = p.id AND it.type IN ('sale', 'cancellation', 'return') AND it.created_at >= now() - interval '30 days'), 0)::int AS sold_30d`;
     if (isExport(c)) {
       const rows = await db.q(`${select} ${from} ORDER BY p.sku LIMIT 20000`, params);
       return exportResponse(c, "inventory.csv", [
-        ["SKU", "Barcode", "Name (AR)", "Name (EN)", "Quantity", "Min stock", "Location", "Unit cost (SAR)", "Stock value at cost (SAR)", "Stock value at selling price (SAR)"],
-        ...rows.map((p) => [p.sku, p.barcode, p.name_ar, p.name_en, p.quantity, p.min_stock, p.location, sar(p.purchase_price), sar(p.purchase_price * p.quantity), sar(p.effective_price * p.quantity)]),
+        ["SKU", "Barcode", "Name (AR)", "Name (EN)", "Quantity", "Min stock", "Sold (30 days)", "Location", "Unit cost (SAR)", "Stock value at cost (SAR)", "Stock value at selling price (SAR)"],
+        ...rows.map((p) => [p.sku, p.barcode, p.name_ar, p.name_en, p.quantity, p.min_stock, p.sold_30d, p.location, sar(p.purchase_price), sar(p.purchase_price * p.quantity), sar(p.effective_price * p.quantity)]),
       ]);
     }
     const rows = await db.q(`${select} ${from} ORDER BY (COALESCE(i.quantity,0) <= COALESCE(i.min_stock,0)) DESC, p.id DESC LIMIT ${per} OFFSET ${offset}`, params);
