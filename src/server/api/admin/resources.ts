@@ -56,6 +56,18 @@ export function registerResourceApi(r: Router) {
   });
 
   crud(r, {
+    path: "service-types", table: "service_types", readPerm: "services.manage", writePerm: "services.manage",
+    search: ["name_ar", "name_en", "slug"], orderBy: "sort, id",
+    schema: z.object({
+      ...t3("name"), ...t3("description", 2000, false), slug: slug.optional().or(z.literal("")), icon: z.string().trim().max(40).nullish().transform((v) => v || null),
+      visit_fee: int(0), duration_min: int(15, 1440).default(60), daily_capacity: int(0, 500).default(6), sort: int().default(0), active: z.boolean().default(true),
+    }).transform((v) => fill({ ...v, slug: v.slug || slugify(v.name_en || v.name_ar) }, "name")),
+    beforeDelete: async (id) => {
+      if (await db.one(`SELECT 1 AS ok FROM service_bookings WHERE service_type_id = $1 LIMIT 1`, [id])) throw conflict("service_has_bookings");
+    },
+  });
+
+  crud(r, {
     path: "brands", table: "brands", readPerm: "products.view", writePerm: "catalog.manage",
     search: ["name_ar", "name_en", "slug"], orderBy: "sort, name_en",
     schema: z.object({ ...t3("name"), slug: slug.optional().or(z.literal("")), logo_url: optUrl, is_popular: z.boolean().default(false), active: z.boolean().default(true), sort: int().default(0) })

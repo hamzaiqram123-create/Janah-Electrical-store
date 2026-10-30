@@ -251,6 +251,17 @@ export const RESOURCES: Record<string, (t: (k: string, v?: any) => string) => Re
     ],
     columns: (t, o) => [{ key: "icon", label: "", className: "w-px", render: (r) => <Glyph name={r.icon} size={22} className="text-muted" /> }, nameCol(t("a.f.name")), { key: "parent_id", label: t("a.f.parent"), render: (r) => (r.parent_id ? optLabel(o.categories, r.parent_id) : "—") }, { key: "slug", label: t("a.f.slug") }, { key: "sort", label: t("a.f.sort") }, boolCol("active", t("a.f.active"), t)],
   }),
+  service_types: (t) => ({
+    api: "service-types", title: "a.nav.service_types", intro: "a.service_types_intro", readPerm: "services.manage", writePerm: "services.manage", search: true,
+    defaults: { visit_fee: 10000, duration_min: 60, daily_capacity: 6, sort: 0, active: true, icon: "plug" },
+    fields: [
+      { key: "name", label: "a.f.name", type: "i18n", required: true }, { key: "slug", label: "a.f.slug", type: "text", hint: "a.f.slug_hint", ltr: true }, { key: "icon", label: "a.f.icon", type: "glyph" },
+      { key: "description", label: "a.f.description", type: "i18n_area" }, { key: "visit_fee", label: "a.f.visit_fee", type: "money", required: true },
+      { key: "duration_min", label: "a.f.duration", type: "number" }, { key: "daily_capacity", label: "a.f.capacity", type: "number" },
+      { key: "sort", label: "a.f.sort", type: "number" }, { key: "active", label: "a.f.active", type: "bool" },
+    ],
+    columns: (t) => [{ key: "icon", label: "", className: "w-px", render: (r) => <Glyph name={r.icon} size={22} className="text-muted" /> }, nameCol(t("a.f.name")), moneyCol("visit_fee", t("a.f.visit_fee")), { key: "duration_min", label: t("a.f.duration") }, { key: "daily_capacity", label: t("a.f.capacity") }, boolCol("active", t("a.f.active"), t)],
+  }),
   brands: (t) => ({
     api: "brands", title: "a.nav.brands", readPerm: "products.view", writePerm: "catalog.manage", search: true, defaults: { sort: 0, active: true, is_popular: false },
     fields: [

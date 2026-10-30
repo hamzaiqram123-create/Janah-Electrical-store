@@ -113,6 +113,7 @@ export function Qty({ value, max, min = 1, onChange, disabled, small }: { value:
 const STATUS_TONE: Record<string, string> = {
   pending: "warn", confirmed: "info", processing: "info", ready_for_shipment: "info", shipped: "info", out_for_delivery: "info", delivered: "ok",
   cancelled: "danger", returned: "muted", refunded: "muted", paid: "ok", unpaid: "muted", failed: "danger", partially_refunded: "muted",
+  assigned: "info", on_the_way: "info", arrived: "info", in_progress: "info", completed: "ok",
   requested: "warn", approved: "info", rejected: "danger", received: "info", open: "warn", resolved: "ok", closed: "muted", active: "ok", draft: "muted", archived: "muted",
   sent: "ok", queued: "warn", skipped: "muted", disabled: "danger", not_submitted: "muted", reported: "ok", cleared: "ok", warning: "warn", error: "danger",
 };

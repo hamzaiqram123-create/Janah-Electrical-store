@@ -187,6 +187,19 @@ export const loaders: Record<RouteName, Loader> = {
   account_wishlist: guarded("account.wishlist"),
   account_tickets: guarded("account.tickets"),
   account_ticket: guarded("account.tickets"),
+  services: async (c) => {
+    const rows = await db.q(`SELECT * FROM service_types WHERE active ORDER BY sort, id`);
+    return { data: { services: rows.map((s) => ({ id: s.id, slug: s.slug, icon: s.icon, name: pick(s, "name", c.lang), description: pick(s, "description", c.lang), visit_fee: s.visit_fee, duration_min: s.duration_min })) }, meta: { title: tr(c.lang, "svc.title"), description: tr(c.lang, "svc.intro") } };
+  },
+  book_service: async (c, p, q) => {
+    const g = await guarded("svc.book")(c, p, q);
+    if (g.redirect) return g;
+    const s = await db.one(`SELECT * FROM service_types WHERE slug = $1 AND active`, [p.slug]);
+    if (!s) return notFoundResult(c.lang);
+    return { data: { service: { id: s.id, slug: s.slug, icon: s.icon, name: pick(s, "name", c.lang), visit_fee: s.visit_fee, duration_min: s.duration_min } }, meta: { title: tr(c.lang, "svc.book_title", { name: pick(s, "name", c.lang) }), noindex: true } };
+  },
+  account_bookings: guarded("account.bookings"),
+  account_booking: guarded("account.bookings"),
   contact: async (c) => ({ data: {}, meta: { title: tr(c.lang, "contact.title"), description: tr(c.lang, "contact.intro") } }),
   faq: async (c) => {
     const rows = await db.q(`SELECT * FROM faqs WHERE active ORDER BY sort, id`);

@@ -14,6 +14,15 @@ import { migrate } from "./migrate";
 import { BANNERS, BRANDS, CATEGORIES, DESCRIPTIONS, FAQS, HOME_SECTIONS, PRODUCTS, REGIONS, SHIPPING_METHODS, SPEC_LABELS } from "./seed-data";
 import { PAGES } from "./seed-pages";
 
+// slug, icon, visit fee (halalas incl. VAT), minutes, names ar/en/ur, descriptions ar/en/ur
+const SERVICE_TYPES: [string, string, number, number, string, string, string, string, string, string][] = [
+  ["ac", "fan", 15000, 90, "صيانة وتركيب المكيفات", "AC installation & repair", "اے سی کی تنصیب اور مرمت", "تركيب مكيفات السبليت والشباك، تنظيف، شحن فريون، وإصلاح الأعطال.", "Split and window units: installation, cleaning, gas refill and fault repair.", "اسپلٹ اور ونڈو اے سی: تنصیب، صفائی، گیس بھرائی اور خرابی کی مرمت۔"],
+  ["wiring", "cable", 10000, 60, "تمديدات وأعطال الكهرباء", "Wiring & electrical faults", "وائرنگ اور بجلی کی خرابیاں", "تمديد أسلاك جديدة، أفياش ومفاتيح، وتتبع الأعطال والتماس.", "New cabling, sockets and switches, tracing faults and short circuits.", "نئی وائرنگ، ساکٹ اور سوئچ، شارٹ سرکٹ اور خرابی کی تلاش۔"],
+  ["panels", "breaker", 20000, 120, "لوحات التوزيع والقواطع", "Distribution panels & breakers", "ڈسٹری بیوشن پینل اور بریکر", "تركيب وترقية لوحات التوزيع، تغيير القواطع، وفحص التأريض.", "Install or upgrade distribution boards, replace breakers, check earthing.", "ڈسٹری بیوشن بورڈ کی تنصیب یا اپ گریڈ، بریکر کی تبدیلی، ارتھنگ کی جانچ۔"],
+  ["lighting", "bulb", 8000, 60, "تركيب الإنارة", "Lighting installation", "لائٹنگ کی تنصیب", "ثريات، سبوتات LED، إنارة خارجية وحساسات حركة.", "Chandeliers, LED spotlights, outdoor lighting and motion sensors.", "فانوس، ایل ای ڈی اسپاٹ لائٹس، بیرونی روشنی اور موشن سینسر۔"],
+  ["appliances", "plug", 12000, 60, "تركيب الأجهزة المنزلية", "Appliance installation", "گھریلو آلات کی تنصیب", "سخانات، أفران، غسالات وشفاطات مع التوصيل الكهربائي الآمن.", "Water heaters, ovens, washing machines and extractor fans, safely connected.", "واٹر ہیٹر، اوون، واشنگ مشین اور ایگزاسٹ فین، محفوظ کنکشن کے ساتھ۔"],
+];
+
 /** Everyday search words customers use for each family (Arabic, Gulf dialect, English, Urdu). */
 const KEYWORDS: Record<string, string> = {
   switches: "مفتاح مفاتيح سويتش switch سوئچ بٹن", sockets: "فيش افياش بلك مقبس بريزة socket outlet ساکٹ", "led-lights": "ليد اضاءة انارة led لائٹ",
@@ -70,6 +79,11 @@ async function seedReference() {
     await db.exec(
       `INSERT INTO pages (slug, title_ar, title_en, title_ur, body_ar, body_en, body_ur) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (slug) DO NOTHING`,
       [p.slug, p.title[0], p.title[1], p.title[2], p.body[0], p.body[1], p.body[2]]);
+  }
+  if (!(await db.one(`SELECT 1 AS ok FROM service_types LIMIT 1`))) {
+    for (const [i, s] of SERVICE_TYPES.entries()) {
+      await db.insert("service_types", { slug: s[0], icon: s[1], visit_fee: s[2], duration_min: s[3], name_ar: s[4], name_en: s[5], name_ur: s[6], description_ar: s[7], description_en: s[8], description_ur: s[9], sort: i + 1 });
+    }
   }
   if (!(await db.one(`SELECT 1 AS ok FROM faqs LIMIT 1`))) {
     for (const [i, f] of FAQS.entries()) await db.insert("faqs", { question_ar: f[0], question_en: f[1], question_ur: f[2], answer_ar: f[3], answer_en: f[4], answer_ur: f[5], sort: i + 1 });
@@ -149,3 +163,4 @@ await seedAdmin();
 if ((process.env.SEED_SAMPLE_CATALOG ?? "true").toLowerCase() !== "false") await seedCatalog();
 console.log("seed complete");
 await closeDb();
+
