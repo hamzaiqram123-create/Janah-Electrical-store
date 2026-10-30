@@ -1,0 +1,13 @@
+name: Site check (temporary)
+on:
+  push:
+    branches: [diag/site-check]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for p in /api/health /en /ar /en/services /.well-known/assetlinks.json; do
+            curl -s -o /tmp/body -w "$p -> HTTP %{http_code} in %{time_total}s\n" -m 120 "https://janah-alriyadah-store.onrender.com$p" || echo "$p -> failed"
+            head -c 300 /tmp/body; echo; echo ---
+          done
