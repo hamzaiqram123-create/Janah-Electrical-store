@@ -168,6 +168,11 @@ export default function Home() {
       case "why_us":
         return (
           <section key={s.id} className="container-x mt-12">
+            <Link to="/services" className="card mb-12 flex flex-wrap items-center gap-4 p-5 hover:border-fg">
+              <span className="grid size-12 place-items-center rounded-md bg-accent-soft text-accent"><Icon name="bolt" size={26} /></span>
+              <span className="min-w-0 flex-1"><b className="block text-lg">{t("svc.title")}</b><span className="text-sm text-muted">{t("svc.intro")}</span></span>
+              <span className="btn btn-primary btn-md">{t("svc.book")}</span>
+            </Link>
             <SectionHead title={sectionTitle(s, "home.why")} />
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[["tag", "why.price"], ["shield", "why.warranty"], ["receipt", "why.invoice"], ["chat", "why.support"]].map(([icon, key]) => (

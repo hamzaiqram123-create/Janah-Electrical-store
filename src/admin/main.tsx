@@ -19,6 +19,7 @@ import { CustomerDetail, CustomersList, TicketsPage, UsersPage } from "./pages/P
 import { InvoicesPage, PaymentsPage, ReturnsPage, ReviewsPage } from "./pages/Sales";
 import Reports from "./pages/Reports";
 import { LogsPage, NotificationsPage, SettingsPage } from "./pages/Settings";
+import { JobDetail, JobsBoard, TechJob, TechJobs, TechniciansPage, TechProfile } from "./pages/Services";
 
 interface RouteDef { re: RegExp; page: ComponentType<{ params: string[] }>; perm?: string }
 const res = (key: string): ComponentType<{ params: string[] }> => function Res() { const { t } = useApp(); return <ResourcePage def={useMemo(() => RESOURCES[key]!(t), [t])} />; };
@@ -56,11 +57,20 @@ const ROUTES: RouteDef[] = [
   { re: /^\/admin\/logs$/, page: LogsPage, perm: "logs.view" },
   { re: /^\/admin\/notifications$/, page: NotificationsPage, perm: "dashboard.view" },
   { re: /^\/admin\/tickets$/, page: TicketsPage, perm: "tickets.manage" },
+  { re: /^\/admin\/jobs$/, page: JobsBoard, perm: "services.manage" },
+  { re: /^\/admin\/jobs\/(\d+)$/, page: JobDetail, perm: "services.manage" },
+  { re: /^\/admin\/technicians$/, page: TechniciansPage, perm: "services.manage" },
+  { re: /^\/admin\/service-types$/, page: res("service_types"), perm: "services.manage" },
+  { re: /^\/admin\/tech$/, page: TechJobs, perm: "jobs.own" },
+  { re: /^\/admin\/tech\/jobs\/(\d+)$/, page: TechJob, perm: "jobs.own" },
+  { re: /^\/admin\/tech\/profile$/, page: TechProfile, perm: "jobs.own" },
 ];
 
 const NAV: { group: string; items: [to: string, icon: string, label: string, perm: string][] }[] = [
+  { group: "a.g.tech", items: [["/tech", "clock", "a.nav.my_jobs", "jobs.own"], ["/tech/profile", "user", "a.nav.my_profile", "jobs.own"]] },
   { group: "a.g.sales", items: [["", "chart", "a.nav.dashboard", "dashboard.view"], ["/orders", "box", "a.nav.orders", "orders.view"], ["/pos", "barcode", "a.nav.pos", "pos.use"], ["/returns", "undo", "a.nav.returns", "returns.manage"], ["/payments", "card", "a.nav.payments", "payments.view"], ["/invoices", "receipt", "a.nav.invoices", "invoices.view"]] },
   { group: "a.g.catalog", items: [["/products", "tag", "a.nav.products", "products.view"], ["/categories", "grid", "a.nav.categories", "products.view"], ["/brands", "layers", "a.nav.brands", "products.view"], ["/inventory", "list", "a.nav.inventory", "inventory.view"], ["/labels", "print", "a.nav.labels", "products.view"]] },
+  { group: "a.g.services", items: [["/jobs", "clock", "a.nav.jobs", "services.manage"], ["/technicians", "users", "a.nav.technicians", "services.manage"], ["/service-types", "bolt", "a.nav.service_types", "services.manage"]] },
   { group: "a.g.customers", items: [["/customers", "users", "a.nav.customers", "customers.view"], ["/reviews", "star", "a.nav.reviews", "reviews.manage"], ["/tickets", "chat", "a.nav.tickets", "tickets.manage"]] },
   { group: "a.g.marketing", items: [["/coupons", "percent", "a.nav.coupons", "promotions.manage"], ["/discounts", "tag", "a.nav.discounts", "promotions.manage"], ["/banners", "image", "a.nav.banners", "content.manage"], ["/homepage", "home", "a.nav.homepage", "content.manage"], ["/pages", "file", "a.nav.pages", "content.manage"], ["/faqs", "help", "a.nav.faqs", "content.manage"]] },
   { group: "a.g.system", items: [["/reports", "chart", "a.nav.reports", "reports.view"], ["/shipping", "truck", "a.nav.shipping", "shipping.manage"], ["/settings", "cog", "a.nav.settings", "settings.manage"], ["/users", "lock", "a.nav.users", "users.manage"], ["/logs", "clock", "a.nav.logs", "logs.view"]] },
@@ -113,7 +123,8 @@ function Shell({ me, onLogout }: { me: Me; onLogout: () => void }) {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  const can = useCallback((perm: string) => me.permissions.includes("*") || me.permissions.includes(perm), [me]);
+  // the technician app is only for technician accounts, not for every super admin
+  const can = useCallback((perm: string) => me.permissions.includes(perm) || (perm !== "jobs.own" && me.permissions.includes("*")), [me]);
   useEffect(() => {
     if (!can("dashboard.view")) return;
     const load = () => api<{ unread: number }>("/api/admin/notifications?per=1").then((r) => setUnread(r.unread)).catch(() => {});
@@ -130,6 +141,8 @@ function Shell({ me, onLogout }: { me: Me; onLogout: () => void }) {
   const Page = match?.r.page;
   const allowed = !match?.r.perm || can(match.r.perm);
   const firstAllowed = NAV.flatMap((g) => g.items).find((i) => can(i[3]));
+  // staff without the dashboard (technicians) open straight on their first screen
+  useEffect(() => { if (loc.path === "/admin" && !can("dashboard.view") && firstAllowed) go(`/admin${firstAllowed[0]}`, true); }, [loc.path]);
 
   const nav = (
     <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label={t("admin.title")}>

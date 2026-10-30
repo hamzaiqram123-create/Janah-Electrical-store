@@ -14,6 +14,7 @@ import InvoicePage from "./pages/Invoice";
 import { Forgot, Login, Register, Reset } from "./pages/Auth";
 import { AccountAddresses, AccountHome, AccountOrders, AccountTicket, AccountTickets, AccountWishlist } from "./pages/Account";
 import { Contact, Faq, NotFound, StaticPage } from "./pages/Support";
+import { AccountBooking, AccountBookings, BookServicePage, ServicesPage } from "./pages/Services";
 
 const PAGES: Record<RouteName, ComponentType> = {
   home: Home,
@@ -25,6 +26,7 @@ const PAGES: Record<RouteName, ComponentType> = {
   login: Login, register: Register, forgot: Forgot, reset: Reset,
   account: AccountHome, account_orders: AccountOrders, account_addresses: AccountAddresses, account_wishlist: AccountWishlist,
   account_tickets: AccountTickets, account_ticket: AccountTicket,
+  services: ServicesPage, book_service: BookServicePage, account_bookings: AccountBookings, account_booking: AccountBooking,
   contact: Contact, faq: Faq, page: StaticPage,
   not_found: NotFound,
 };

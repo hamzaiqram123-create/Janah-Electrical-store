@@ -182,6 +182,7 @@ export function Header() {
               <Link key={c.id} to={`/c/${c.slug}`} className="shrink-0 px-3 py-3 text-sm whitespace-nowrap hover:text-accent">{c.name}</Link>
             ))}
           </nav>
+          <Link to="/services" className="flex shrink-0 items-center gap-1.5 px-3 text-sm font-semibold hover:text-accent"><Icon name="bolt" size={16} />{t("nav.services")}</Link>
           <Link to="/products?flag=deals" className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-accent"><Icon name="percent" size={16} />{t("nav.deals")}</Link>
           {cats && (
             <div id="all-cats" className="absolute inset-x-4 top-full z-40 grid max-h-[70dvh] grid-cols-3 gap-x-6 gap-y-1 overflow-y-auto rounded-b-md border border-t-0 border-line bg-surface p-4 shadow-xl lg:grid-cols-4">
@@ -214,6 +215,7 @@ export function Header() {
               <Link to={shell.user ? "/account" : "/login"} className="flex items-center gap-3 rounded-md px-3 py-3 font-semibold hover:bg-surface-2"><Icon name="user" />{shell.user ? shell.user.name || t("nav.account") : t("nav.login")}</Link>
               <Link to="/products" className="flex items-center gap-3 rounded-md px-3 py-3 hover:bg-surface-2"><Icon name="box" />{t("nav.all_products")}</Link>
               <Link to="/products?flag=deals" className="flex items-center gap-3 rounded-md px-3 py-3 text-accent hover:bg-surface-2"><Icon name="percent" />{t("nav.deals")}</Link>
+              <Link to="/services" className="flex items-center gap-3 rounded-md px-3 py-3 hover:bg-surface-2"><Icon name="bolt" />{t("nav.services")}</Link>
               <p className="px-3 pt-4 pb-1 text-sm font-semibold text-muted">{t("nav.categories")}</p>
               {shell.categories.map((c) => (
                 <Link key={c.id} to={`/c/${c.slug}`} className="flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-surface-2"><Glyph name={c.icon} size={22} className="text-muted" />{c.name}</Link>

@@ -56,6 +56,22 @@ There are also store apps, built by GitHub Actions and published under the repos
 Listing texts, graphics and the step-by-step publishing guide for each store are in `store/` and
 [docs/STORES.md](docs/STORES.md).
 
+## Home services and the technician app
+
+Customers can book a technician from **/services** (AC, wiring, panels, lighting, appliances; the list is
+managed in **Admin → Service types & slots**). A booking picks a day and a two-hour slot (08:00–20:00,
+capacity per slot set on each service type), with a problem description and photos.
+
+| Who | Where | What they do |
+|---|---|---|
+| Customer | **Account → Service bookings** | See upcoming and past jobs, reschedule or cancel before the technician sets off, approve or decline the technician's quote, see the bill (VAT included), rate the job |
+| Staff (`services.manage`) | **Admin → Jobs board** (list and week view), **Technicians** | Assign or change technicians, cancel bookings, add technician accounts, toggle availability |
+| Technician (`technician` role) | Signs in at **/admin**, lands on **Today's jobs** | Job list by slot, customer call and map link, status steps (on the way → arrived → in progress → completed), parts from stock and labour as a quote, collect card or cash payment with before/after photos, profile with ratings and schedule |
+
+Parts on an approved quote leave stock through `moveStock` when the payment is recorded. Technician sign-in
+uses email and password like other staff; phone OTP needs an SMS provider (`SMS_PROVIDER`). Job payments are
+recorded as collected on site (card terminal or cash); they do not yet create a ZATCA tax invoice.
+
 ## Run it locally
 
 Requirements: Bun ≥ 1.2 and PostgreSQL.

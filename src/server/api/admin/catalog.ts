@@ -205,7 +205,7 @@ export function registerCatalogAdminApi(r: Router) {
 
   r.post("/api/admin/uploads", async (c) => {
     // brand logos, banners and product videos: only roles that can actually edit that content may upload
-    if (!["products.manage", "catalog.manage", "content.manage"].some((p) => c.can(p as any))) throw new HttpError(403, "forbidden");
+    if (!["products.manage", "catalog.manage", "content.manage", "jobs.own"].some((p) => c.can(p as any))) throw new HttpError(403, "forbidden");
     const [file] = await readFiles(c);
     const kind = c.query.get("kind");
     if (kind === "video") return saveVideo(file!);

@@ -38,17 +38,24 @@ export const PERMISSIONS = [
   "payments.view", "payments.refund", "shipping.manage", "returns.manage",
   "invoices.view", "reports.view", "content.manage", "settings.manage",
   "tickets.manage", "users.manage", "logs.view",
+  "services.manage", "jobs.own",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 export const SYSTEM_ROLES: { key: string; name: string; permissions: string[] }[] = [
   { key: "super_admin", name: "Super admin", permissions: ["*"] },
-  { key: "manager", name: "Store manager", permissions: PERMISSIONS.filter((p) => p !== "users.manage" && p !== "settings.manage") },
+  { key: "manager", name: "Store manager", permissions: PERMISSIONS.filter((p) => p !== "users.manage" && p !== "settings.manage" && p !== "jobs.own") },
   { key: "sales", name: "Sales & orders", permissions: ["dashboard.view", "orders.view", "orders.manage", "pos.use", "products.view", "customers.view", "inventory.view", "invoices.view", "returns.manage", "tickets.manage", "payments.view"] },
   { key: "inventory", name: "Inventory keeper", permissions: ["dashboard.view", "products.view", "products.manage", "catalog.manage", "inventory.view", "inventory.manage"] },
   { key: "accountant", name: "Accountant", permissions: ["dashboard.view", "orders.view", "payments.view", "payments.refund", "invoices.view", "reports.view", "customers.view"] },
   { key: "support", name: "Customer support", permissions: ["orders.view", "customers.view", "tickets.manage", "reviews.manage", "products.view"] },
+  { key: "technician", name: "Technician", permissions: ["jobs.own"] },
 ];
+
+/** Bookable visit times (Riyadh time). Capacity per slot is set on each service type. */
+export const SERVICE_SLOTS = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"] as const;
+/** Job steps in order, as the technician moves through them. */
+export const JOB_FLOW = ["requested", "assigned", "on_the_way", "arrived", "in_progress", "completed"] as const;
 
 export const CURRENCY = "SAR";
 /** Calendar date in Saudi time (UTC+3, no daylight saving), whatever the server's own time zone is. Used for document numbering and tax periods. */

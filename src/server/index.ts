@@ -14,6 +14,7 @@ import { registerCatalogAdminApi } from "./api/admin/catalog";
 import { registerOrdersAdminApi } from "./api/admin/orders";
 import { registerReportsApi } from "./api/admin/reports";
 import { registerMiscAdminApi } from "./api/admin/misc";
+import { registerServicesApi } from "./api/services";
 import { adminShell, loadPage, renderPage } from "./ssr";
 import { shellData } from "./loaders";
 import { robotsTxt, sitemapXml } from "./seo";
@@ -32,6 +33,7 @@ registerResourceApi(router);
 registerOrdersAdminApi(router);
 registerReportsApi(router);
 registerMiscAdminApi(router);
+registerServicesApi(router);
 router.get("/api/health", () => ({ ok: true, time: new Date().toISOString() }));
 
 const DIST_ASSETS = join(import.meta.dir, "../../dist/assets");

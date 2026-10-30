@@ -7,12 +7,13 @@ import { ProductGrid, type Card } from "../parts/Product";
 import { Icon } from "../ui/Icon";
 import { Button, Empty, Field, Input, Link, Modal, Pagination, ProductImage, Select, StatusBadge, Textarea, useForm } from "../ui/kit";
 
-function AccountLayout({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+export function AccountLayout({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   const app = useApp();
   const { t, route, shell } = app;
   const links: [to: string, icon: string, label: string, names: string[]][] = [
     ["/account", "user", t("account.profile"), ["account"]],
     ["/account/orders", "box", t("account.orders"), ["account_orders"]],
+    ["/account/bookings", "clock", t("account.bookings"), ["account_bookings", "account_booking"]],
     ["/account/addresses", "pin", t("account.addresses"), ["account_addresses"]],
     ["/account/wishlist", "heart", t("account.wishlist"), ["account_wishlist"]],
     ["/account/tickets", "chat", t("account.tickets"), ["account_tickets", "account_ticket"]],
