@@ -63,6 +63,7 @@ export function InventoryPage() {
         { key: "name", label: t("a.f.product"), render: (p) => <><Link to={`/products/${p.id}`} className="font-medium hover:text-accent">{nm(p)}</Link><span className="block text-xs text-muted" dir="ltr" style={{ textAlign: "start" }}>{p.sku}{p.barcode ? ` / ${p.barcode}` : ""}</span></> },
         { key: "quantity", label: t("a.f.stock"), className: "text-end tabular-nums", render: (p) => <span className={`text-base font-bold ${p.quantity === 0 ? "text-danger" : p.quantity <= p.min_stock ? "text-warn" : ""}`}>{p.quantity}</span> },
         { key: "min_stock", label: t("a.f.min_stock"), className: "text-end tabular-nums" },
+        { key: "sold_30d", label: t("a.f.sold_30d"), className: "text-end tabular-nums" },
         { key: "state", label: t("a.f.status"), render: (p) => (p.quantity === 0 ? <Badge tone="danger">{t("a.st_out")}</Badge> : p.quantity <= p.min_stock ? <Badge tone="warn">{t("a.st_low")}</Badge> : <Badge tone="ok">{t("a.st_ok")}</Badge>) },
         { key: "location", label: t("a.f.location") },
         { key: "value", label: t("a.f.stock_value"), className: "text-end tabular-nums", render: (p) => sar(p.purchase_price * p.quantity) },
