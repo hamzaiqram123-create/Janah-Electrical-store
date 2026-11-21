@@ -5,6 +5,7 @@ name: Build APKs
 on:
   push:
     branches: [ android-apps ]
+    paths-ignore: [ '.github/workflows/smoke-test.yml', '.github/scripts/**' ]
   workflow_dispatch:
 
 permissions:
