@@ -23,8 +23,12 @@ jobs:
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: google_apis
+          target: default
           arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          heap-size: 512M
+          cores: 3
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: python3 .github/scripts/smoke.py

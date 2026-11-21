@@ -23,7 +23,7 @@ for app, pkg in [('Customer', 'com.janahalriyadah.store.debug'), ('Owner', 'com.
     sh('adb logcat -c')
     sh(f'adb install -r out/Janah-{app}-debug.apk')
     sh(f'adb shell am start -W -n {pkg}/com.janahalriyadah.app.MainActivity')
-    time.sleep(35)
+    time.sleep(45)
     sh(f'adb shell dumpsys activity activities | grep -E "topResumedActivity|ResumedActivity" | head -3')
     sh(f'adb exec-out screencap -p > shots/{app}-1-start.png')
     x = dump(); open(f'shots/{app}-ui.xml','w').write(x)
