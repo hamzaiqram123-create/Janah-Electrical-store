@@ -36,8 +36,10 @@ for app, pkg in [('Customer', 'com.janahalriyadah.store.debug'), ('Owner', 'com.
             d = dump(); print(f'### Owner dashboard visible = {bool(re.search("لوحة التحكم|Dashboard|مبيعات اليوم", d))}')
     log = sh('adb logcat -d -v brief')
     open(f'shots/{app}-logcat.txt','w').write(log)
-    crash = re.findall(r'FATAL EXCEPTION.*|AndroidRuntime.*', log)
-    jserr = re.findall(r'chromium.*(?:Uncaught|Error).*', log)
-    print(f'### {app}: crashes={len(crash)} js_errors={len(jserr)}'); [print('   ', c) for c in (crash + jserr)[:10]]
+    crash = re.findall(r'FATAL EXCEPTION.*', log)
+    jserr = re.findall(r'.*(?:chromium|Console|cr_|WebView).*', log)
+    texts = re.findall(r'text="([^"]+)"', x)
+    print(f'### {app}: ui texts:', texts[:25])
+    print(f'### {app}: crashes={len(crash)} js_errors={len(jserr)}'); [print('   ', c) for c in (crash + jserr)[:40]]
     if crash or not found: ok = False
 print('### RESULT', 'PASS' if ok else 'FAIL')

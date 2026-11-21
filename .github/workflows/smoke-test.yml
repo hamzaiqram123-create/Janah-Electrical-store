@@ -29,3 +29,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: smoke-results, path: shots/ }
+      - name: Publish screenshots to a 'smoke-test' release
+        if: always()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete smoke-test -R "${{ github.repository }}" -y --cleanup-tag || true
+          gh release create smoke-test -R "${{ github.repository }}" --target android-apps --prerelease \
+            --title "Emulator smoke test screenshots" --notes "Automatic test output" shots/*.png shots/*.txt
