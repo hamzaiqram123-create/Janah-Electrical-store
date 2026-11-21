@@ -16,3 +16,4 @@ for path in settings/store products; do
 done
 R=$(curl -s -w ' HTTP=%{http_code}' "$B/orders?key=$K")
 echo "### FIRESTORE orders (should be denied for strangers): $(echo "$R" | tr -d '\n' | grep -oE '"status": *"[^"]*"|HTTP=[0-9]+' | tr '\n' ' ')"
+# check 2026-11-21T07:39:50Z
