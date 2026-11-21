@@ -9,12 +9,12 @@
  */
 window.JANAH_CONFIG = {
   firebase: {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: "AIzaSyAnW1i32DasZ1RWzDutFsMbncd70hpap8s",
+    authDomain: "janah-al-riyadah.firebaseapp.com",
+    projectId: "janah-al-riyadah",
+    storageBucket: "janah-al-riyadah.firebasestorage.app",
+    messagingSenderId: "781851334952",
+    appId: "1:781851334952:web:abae98635e438d3ca4981d"
   },
   ownerEmails: ["akrambajwa062@gmail.com"]
 };
