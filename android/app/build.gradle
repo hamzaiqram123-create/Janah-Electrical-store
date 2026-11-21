@@ -1,0 +1,71 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing: create app/../keystore.properties (see BUILD-GUIDE) or use
+// Android Studio > Build > Generate Signed App Bundle / APK.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) { keystoreProps.load(new FileInputStream(keystorePropsFile)) }
+
+android {
+    namespace 'com.janahalriyadah.app'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    flavorDimensions 'role'
+    productFlavors {
+        customer {
+            dimension 'role'
+            applicationId 'com.janahalriyadah.store'
+        }
+        owner {
+            dimension 'role'
+            applicationId 'com.janahalriyadah.owner'
+        }
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

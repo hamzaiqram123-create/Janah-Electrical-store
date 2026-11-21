@@ -1,0 +1,71 @@
+# Builds the Customer + Owner APKs (debug + release) on GitHub's servers
+# and publishes them as a GitHub Release you can download on your phone.
+name: Build APKs
+
+on:
+  push:
+    branches: [ android-apps ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Release signing key
+        working-directory: android
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          PASS="${KEYSTORE_PASSWORD:-janahtest123}"
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > release.jks
+          else
+            echo "No RELEASE_KEYSTORE_BASE64 secret: creating a TEST signing key (fine for testing, not for Play Store)"
+            keytool -genkeypair -noprompt -keystore release.jks -alias janah -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$PASS" -keypass "$PASS" -dname "CN=Janah Al Riyadah, O=Janah Al Riyadah, C=SA"
+          fi
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=janah\nkeyPassword=%s\n' "$PASS" "$PASS" > keystore.properties
+
+      - name: Build APKs
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleCustomerDebug assembleOwnerDebug assembleCustomerRelease assembleOwnerRelease
+
+      - name: Collect APKs
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/customer/debug/app-customer-debug.apk     out/Janah-Customer-debug.apk
+          cp android/app/build/outputs/apk/owner/debug/app-owner-debug.apk           out/Janah-Owner-debug.apk
+          cp android/app/build/outputs/apk/customer/release/app-customer-release.apk out/Janah-Customer-release.apk
+          cp android/app/build/outputs/apk/owner/release/app-owner-release.apk       out/Janah-Owner-release.apk
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: janah-apks
+          path: out/*.apk
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: Janah apps — build ${{ github.run_number }}
+          body: |
+            Customer app + Owner app (debug and release APKs).
+            Phone par .apk download karein → Install (Settings mein "Install unknown apps" allow karein).
+          files: out/*.apk

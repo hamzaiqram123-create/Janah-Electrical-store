@@ -1,0 +1,17 @@
+{
+  "name": "janah-al-riyadah-web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@fontsource/cairo": "^5.3.0",
+    "esbuild": "^0.28.2",
+    "firebase": "^11.10.0"
+  }
+}
