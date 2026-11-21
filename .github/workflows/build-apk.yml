@@ -31,6 +31,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Same signing keys on every build, so new APKs install over old ones
+      - name: Restore signing keys
+        id: keys
+        uses: actions/cache@v4
+        with:
+          path: |
+            android/release.jks
+            ~/.android/debug.keystore
+          key: janah-signing-keys-v1
+
       - name: Release signing key
         working-directory: android
         env:
@@ -40,6 +50,8 @@ jobs:
           PASS="${KEYSTORE_PASSWORD:-janahtest123}"
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > release.jks
+          elif [ -f release.jks ]; then
+            echo "Using cached signing key"
           else
             echo "No RELEASE_KEYSTORE_BASE64 secret: creating a TEST signing key (fine for testing, not for Play Store)"
             keytool -genkeypair -noprompt -keystore release.jks -alias janah -keyalg RSA -keysize 2048 -validity 10000 \
@@ -51,10 +63,16 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -noprompt -keystore ~/.android/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          fi
           ./gradlew --no-daemon assembleCustomerDebug assembleOwnerDebug assembleCustomerRelease assembleOwnerRelease
 
       - name: Collect APKs
         run: |
+          keytool -list -v -keystore android/release.jks -storepass "${{ secrets.RELEASE_KEYSTORE_PASSWORD || 'janahtest123' }}" -alias janah | grep -E "SHA1:|SHA256:" | sed 's/^/RELEASE KEY /'
           mkdir -p out
           cp android/app/build/outputs/apk/customer/debug/app-customer-debug.apk     out/Janah-Customer-debug.apk
           cp android/app/build/outputs/apk/owner/debug/app-owner-debug.apk           out/Janah-Owner-debug.apk

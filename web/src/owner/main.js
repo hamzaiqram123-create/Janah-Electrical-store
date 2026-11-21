@@ -2,7 +2,7 @@ import { t, L, getLang, applyLang, toggleLang, onLangChange } from '../shared/i1
 import { backend, authErrorKey, isOwnerEmail, OWNER_EMAILS, mergeSettings } from '../shared/backend.js';
 import {
   h, fmtSAR, fmtDate, toast, sheet, confirmBox, field, isEmail, imagePicker, badge, statusKind, payKind,
-  empty, langButton, demoBanner, waLink, errMsg
+  empty, langButton, demoBanner, waLink, errMsg, dbErrorBox
 } from '../shared/ui.js';
 
 applyLang();
@@ -46,7 +46,7 @@ function render(fromData) {
   if (!S.settings || !S.products || !S.orders) { app.replaceChildren(header(), h('div.spinner')); return; }
   const y = window.scrollY;
   const views = { dashboard, orders, order, products, product, inventory, settings };
-  app.replaceChildren(header(), demoBanner(backend.mode), h('main', (views[r.name] || dashboard)(r.arg)), nav(r.name));
+  app.replaceChildren(header(), demoBanner(backend.mode), h('main', S.dbError ? dbErrorBox(S.dbError) : null, (views[r.name] || dashboard)(r.arg)), nav(r.name));
   if (fromData) window.scrollTo(0, y);
 }
 
@@ -391,10 +391,14 @@ backend.auth.onChange((u) => {
   unsubs.forEach(f => f && f()); unsubs = []; knownOrders = null;
   S.user = u;
   if (u && isOwnerEmail(u.email)) {
-    unsubs.push(backend.watchSettings((s) => { if (s) { S.settings = s; render(true); } }));
-    unsubs.push(backend.watchProducts((p) => { if (p) { S.products = p; render(true); } }));
-    unsubs.push(backend.watchAllOrders((o, err) => { if (err) { toast(errMsg(err), 'err'); return; } if (o) { alertNew(o); S.orders = o; render(true); } }));
-    unsubs.push(backend.watchAllServices((o) => { if (o) { S.services = o; render(true); } }));
+    const fail = (e) => { console.error(e); S.dbError = e; if (!S.settings) S.settings = mergeSettings(null); if (!S.products) S.products = []; if (!S.orders) S.orders = []; render(); };
+    unsubs.push(backend.watchSettings((s, e) => { if (e) return fail(e); if (s) { S.settings = s; render(true); } }));
+    unsubs.push(backend.watchProducts((p, e) => { if (e) return fail(e); if (p) { S.products = p; render(true); } }));
+    unsubs.push(backend.watchAllOrders((o, e) => { if (e) return fail(e); if (o) { alertNew(o); S.orders = o; S.dbError = null; render(true); } }));
+    unsubs.push(backend.watchAllServices((o, e) => { if (e) return; if (o) { S.services = o; render(true); } }));
+    setTimeout(() => { if (S.user && (!S.settings || !S.products || !S.orders)) fail({ code: 'timeout: no response from database' }); }, 20000);
+    setTimeout(() => { if (backend.isConnected() !== true && !S.dbError) { S.dbError = { code: 'offline: database not reachable (Firestore not created / no internet)' }; render(); } }, 12000);
+    backend.onConnection((ok) => { if (ok && S.dbError) { S.dbError = null; render(); } });
   }
   render();
 });

@@ -57,6 +57,7 @@ const dict = {
     fieldType: 'Type', ft_text: 'Text', ft_number: 'Number', ft_textarea: 'Long text', ft_select: 'Dropdown', ft_date: 'Date', options: 'Options (comma separated)', isRequired: 'Required',
     categoriesSettings: 'Product categories', addCategory: 'Add category', catEn: 'English', catAr: 'Arabic',
     serviceRequests: 'Repair requests', ownerNote: 'Note to customer', setStatus: 'Set status',
+    dbError: 'Cannot connect to the store database', dbErrorHint: 'Check your internet. Store owner: make sure the Firestore database is created and the security rules are published.', retry: 'Retry',
     exportCsv: 'Export orders (CSV)', firebaseStatus: 'Database', connected: 'Connected to Firebase', demoMode: 'Demo (this device only)',
   },
   ar: {
@@ -114,6 +115,7 @@ const dict = {
     fieldType: 'النوع', ft_text: 'نص', ft_number: 'رقم', ft_textarea: 'نص طويل', ft_select: 'قائمة', ft_date: 'تاريخ', options: 'الخيارات (مفصولة بفاصلة)', isRequired: 'إلزامي',
     categoriesSettings: 'أقسام المنتجات', addCategory: 'إضافة قسم', catEn: 'إنجليزي', catAr: 'عربي',
     serviceRequests: 'طلبات الصيانة', ownerNote: 'ملاحظة للعميل', setStatus: 'تغيير الحالة',
+    dbError: 'تعذر الاتصال بقاعدة بيانات المتجر', dbErrorHint: 'تحقق من الإنترنت. لمالك المتجر: تأكد من إنشاء قاعدة Firestore ونشر قواعد الأمان.', retry: 'إعادة المحاولة',
     exportCsv: 'تصدير الطلبات (CSV)', firebaseStatus: 'قاعدة البيانات', connected: 'متصل بـ Firebase', demoMode: 'تجريبي (هذا الجهاز فقط)',
   }
 };

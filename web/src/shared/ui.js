@@ -161,5 +161,13 @@ export function errMsg(e) {
   if (e && e.message === 'INSUFFICIENT') return t('insufficientStock', { n: (e.items || []).join(', ') });
   if (e && String(e.code || e.message).includes('permission')) return getLang() === 'ar' ? 'تم رفض الإذن. تحقق من قواعد Firestore.' : 'Permission denied. Check Firestore rules.';
   if (!navigator.onLine) return t('errNetwork');
+  if (e && (e.code === 'unavailable' || e.message === 'timeout')) return t('dbError');
   return t('errGeneric');
+}
+
+export function dbErrorBox(err) {
+  const code = err ? String(err.code || err.message || '').slice(0, 120) : '';
+  return h('div.errbox', { style: 'margin-bottom:12px' }, h('b', '⚠️ ' + t('dbError')), h('div.small', t('dbErrorHint')),
+    code ? h('div.small', { style: 'direction:ltr;unicode-bidi:plaintext;opacity:.75' }, code) : null,
+    h('button.btn.danger.sm.mt', { onclick: () => location.reload() }, t('retry')));
 }

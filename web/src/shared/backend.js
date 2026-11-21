@@ -68,10 +68,17 @@ function firebaseBackend() {
   const auth = getAuth(app);
   const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true, ignoreUndefinedProperties: true });
   const snapList = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // connection state: a snapshot that is NOT from cache means the server answered
+  let connected = null; const connL = new Set();
+  const setConn = (v) => { if (connected !== v) { connected = v; connL.forEach(f => f(v)); } };
+  // writes wait for the server; if it never answers, fail instead of spinning forever
+  const T = (p) => Promise.race([p, new Promise((_, rej) => setTimeout(() => { const e = new Error('timeout'); e.code = 'unavailable'; rej(e); }, 15000))]);
   const onErr = (cb) => (e) => { console.error(e); cb && cb(null, e); };
 
   return {
     mode: 'firebase',
+    isConnected: () => connected,
+    onConnection: (f) => { connL.add(f); return () => connL.delete(f); },
     auth: {
       onChange: (cb) => onAuthStateChanged(auth, (u) => cb(u ? { uid: u.uid, email: u.email, name: u.displayName } : null)),
       signIn: (email, pw) => signInWithEmailAndPassword(auth, email.trim(), pw),
@@ -87,34 +94,34 @@ function firebaseBackend() {
     async getProfile(uid) { const s = await getDoc(doc(db, 'users', uid)); return s.exists() ? s.data() : null; },
     saveProfile: (uid, data) => setDoc(doc(db, 'users', uid), { ...data, updatedAt: Date.now() }, { merge: true }),
 
-    watchSettings: (cb) => onSnapshot(doc(db, 'settings', 'store'), (s) => cb(mergeSettings(s.exists() ? s.data() : null)), onErr(cb)),
-    saveSettings: (data) => setDoc(doc(db, 'settings', 'store'), { ...data, updatedAt: Date.now() }),
+    watchSettings: (cb) => onSnapshot(doc(db, 'settings', 'store'), { includeMetadataChanges: true }, (s) => { setConn(!s.metadata.fromCache); cb(mergeSettings(s.exists() ? s.data() : null)); }, onErr(cb)),
+    saveSettings: (data) => T(setDoc(doc(db, 'settings', 'store'), { ...data, updatedAt: Date.now() })),
 
     watchProducts: (cb) => onSnapshot(collection(db, 'products'), (s) => cb(snapList(s).sort(byCreatedDesc)), onErr(cb)),
     async saveProduct(p) {
       const { id, ...data } = p; data.updatedAt = Date.now();
-      if (id) { await updateDoc(doc(db, 'products', id), data); return id; }
+      if (id) { await T(updateDoc(doc(db, 'products', id), data)); return id; }
       data.createdAt = Date.now();
-      const r = await addDoc(collection(db, 'products'), data); return r.id;
+      const r = await T(addDoc(collection(db, 'products'), data)); return r.id;
     },
-    deleteProduct: (id) => deleteDoc(doc(db, 'products', id)),
-    setStock: (id, stock) => updateDoc(doc(db, 'products', id), { stock: Number(stock), updatedAt: Date.now() }),
+    deleteProduct: (id) => T(deleteDoc(doc(db, 'products', id))),
+    setStock: (id, stock) => T(updateDoc(doc(db, 'products', id), { stock: Number(stock), updatedAt: Date.now() })),
 
     async createOrder(order) {
       const data = { ...order, orderNo: makeOrderNo(), status: 'pending', stockDeducted: false,
         history: [{ status: 'pending', at: Date.now() }], createdAt: Date.now(), updatedAt: Date.now() };
-      const r = await addDoc(collection(db, 'orders'), data);
+      const r = await T(addDoc(collection(db, 'orders'), data));
       return { id: r.id, ...data };
     },
     watchMyOrders: (uid, cb) => onSnapshot(query(collection(db, 'orders'), where('uid', '==', uid)), (s) => cb(snapList(s).sort(byCreatedDesc)), onErr(cb)),
     watchAllOrders: (cb) => onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(500)), (s) => cb(snapList(s)), onErr(cb)),
-    updateOrder: (id, patch) => updateDoc(doc(db, 'orders', id), { ...patch, updatedAt: Date.now() }),
+    updateOrder: (id, patch) => T(updateDoc(doc(db, 'orders', id), { ...patch, updatedAt: Date.now() })),
     async customerCancel(order) {
-      await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled', history: [...(order.history || []), { status: 'cancelled', at: Date.now(), by: 'customer' }], updatedAt: Date.now() });
+      await T(updateDoc(doc(db, 'orders', order.id), { status: 'cancelled', history: [...(order.history || []), { status: 'cancelled', at: Date.now(), by: 'customer' }], updatedAt: Date.now() }));
     },
     // Owner: change status; deducts stock on confirm, restores it on cancel (atomic transaction)
     async setOrderStatus(id, status) {
-      await runTransaction(db, async (tx) => {
+      await T(runTransaction(db, async (tx) => {
         const oref = doc(db, 'orders', id);
         const os = await tx.get(oref); if (!os.exists()) throw new Error('Order not found');
         const o = os.data();
@@ -137,13 +144,13 @@ function firebaseBackend() {
           patch.stockDeducted = needDeduct;
         }
         tx.update(oref, patch);
-      });
+      }));
     },
 
-    createService: (s) => addDoc(collection(db, 'services'), { ...s, status: 'new', createdAt: Date.now(), updatedAt: Date.now() }),
+    createService: (s) => T(addDoc(collection(db, 'services'), { ...s, status: 'new', createdAt: Date.now(), updatedAt: Date.now() })),
     watchMyServices: (uid, cb) => onSnapshot(query(collection(db, 'services'), where('uid', '==', uid)), (s) => cb(snapList(s).sort(byCreatedDesc)), onErr(cb)),
     watchAllServices: (cb) => onSnapshot(query(collection(db, 'services'), orderBy('createdAt', 'desc'), limit(300)), (s) => cb(snapList(s)), onErr(cb)),
-    updateService: (id, patch) => updateDoc(doc(db, 'services', id), { ...patch, updatedAt: Date.now() }),
+    updateService: (id, patch) => T(updateDoc(doc(db, 'services', id), { ...patch, updatedAt: Date.now() })),
   };
 }
 
@@ -183,6 +190,8 @@ function demoBackend() {
 
   return {
     mode: 'demo',
+    isConnected: () => true,
+    onConnection: () => () => {},
     auth: {
       onChange(cb) { authListeners.add(cb); setTimeout(() => cb(currentUser()), 0); return () => authListeners.delete(cb); },
       async signIn(email, pw) {

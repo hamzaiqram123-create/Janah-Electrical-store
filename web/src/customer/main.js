@@ -1,8 +1,8 @@
 import { t, L, getLang, applyLang, toggleLang, onLangChange } from '../shared/i18n.js';
-import { backend, authErrorKey, SS } from '../shared/backend.js';
+import { backend, authErrorKey, SS, mergeSettings } from '../shared/backend.js';
 import {
   h, fmtSAR, fmtDate, toast, sheet, confirmBox, field, isSaudiMobile, normPhone, isEmail, imagePicker,
-  copyText, badge, statusKind, payKind, empty, langButton, demoBanner, waLink, totals, errMsg
+  copyText, badge, statusKind, payKind, empty, langButton, demoBanner, waLink, totals, errMsg, dbErrorBox
 } from '../shared/ui.js';
 import { luhnOk, parseExpiry, startMoyasarPayment, readPaymentReturn } from '../shared/payments.js';
 
@@ -67,7 +67,7 @@ function render(fromData) {
   const y = window.scrollY;
   const views = { home, product, cart, checkout, orders, order, repair, account, login, done };
   const view = (views[r.name] || home)(r.arg);
-  app.replaceChildren(header(), demoBanner(backend.mode), h('main', view), nav(r.name));
+  app.replaceChildren(header(), demoBanner(backend.mode), h('main', S.dbError ? dbErrorBox(S.dbError) : null, view), nav(r.name));
   if (fromData) window.scrollTo(0, y);
 }
 
@@ -536,15 +536,19 @@ function loginView(note) {
 
 // ------------------------------------------------------------------ start
 function boot() {
-backend.watchSettings((s) => { if (s) { S.settings = s; render(true); } });
-backend.watchProducts((p) => { if (p) { S.products = p; syncCart(); render(true); } });
+const fail = (e) => { console.error(e); S.dbError = e; if (!S.settings) S.settings = mergeSettings(null); if (!S.products) S.products = []; render(); };
+backend.watchSettings((s, e) => { if (e) return fail(e); if (s) { S.settings = s; render(true); } });
+backend.watchProducts((p, e) => { if (e) return fail(e); if (p) { S.products = p; S.dbError = null; syncCart(); render(true); } });
+setTimeout(() => { if (!S.settings || !S.products) fail({ code: 'timeout: no response from database' }); }, 20000);
+setTimeout(() => { if (backend.isConnected() !== true && !S.dbError) { S.dbError = { code: 'offline: database not reachable (Firestore not created / no internet)' }; render(); } }, 12000);
+backend.onConnection((ok) => { if (ok && S.dbError) { S.dbError = null; render(); } });
 backend.auth.onChange(async (u) => {
   unsubs.forEach(f => f && f()); unsubs = [];
   S.user = u; S.orders = []; S.services = [];
   if (u) {
     try { S.profile = await backend.getProfile(u.uid); } catch (e) { S.profile = null; }
-    unsubs.push(backend.watchMyOrders(u.uid, (o) => { if (o) { S.orders = o; render(true); } }));
-    unsubs.push(backend.watchMyServices(u.uid, (o) => { if (o) { S.services = o; render(true); } }));
+    unsubs.push(backend.watchMyOrders(u.uid, (o, e) => { if (e) { toast(errMsg(e), 'err'); return; } if (o) { S.orders = o; render(true); } }));
+    unsubs.push(backend.watchMyServices(u.uid, (o, e) => { if (e) return; if (o) { S.services = o; render(true); } }));
     if (payReturn && payReturn.orderId && !payReturn.handled) { payReturn.handled = true; handlePaymentReturn(payReturn); }
   } else S.profile = null;
   render();
