@@ -2,6 +2,9 @@
 name: Emulator smoke test
 on:
   workflow_dispatch:
+  push:
+    branches: [ android-apps ]
+    paths: [ '.github/workflows/smoke-test.yml', '.github/scripts/**' ]
 jobs:
   test:
     runs-on: ubuntu-latest
