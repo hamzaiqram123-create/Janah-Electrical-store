@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 jobs:
+  firebase-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .github/scripts/firebase_check.sh
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 40

@@ -36,7 +36,7 @@ for app, pkg in [('Customer', 'com.janahalriyadah.store.debug'), ('Owner', 'com.
         if p: sh(f'adb shell input tap {p[0]} {p[1]}'); time.sleep(2); sh(f'adb exec-out screencap -p > shots/{app}-3-added.png')
     else:
         e = edits(x)
-        if len(e) >= 2:
+        if False and len(e) >= 2:  # real Firebase now: don't try a password
             sh(f'adb shell input tap {e[1][0]} {e[1][1]}'); time.sleep(1); sh('adb shell input text demo1234'); sh('adb shell input keyevent 66'); time.sleep(6)
             sh(f'adb exec-out screencap -p > shots/{app}-2-dashboard.png')
             d = dump(); print(f'### Owner dashboard visible = {bool(re.search("لوحة التحكم|Dashboard|مبيعات اليوم", d))}')
