@@ -3,7 +3,12 @@ import subprocess, time, re, sys, os
 os.makedirs('shots', exist_ok=True)
 def sh(c, check=False): r = subprocess.run(c, shell=True, capture_output=True, text=True); print('$', c, '\n', (r.stdout + r.stderr)[-600:]); return r.stdout
 def dump():
-    sh('adb shell uiautomator dump /sdcard/ui.xml'); return sh('adb shell cat /sdcard/ui.xml')
+    for i in range(4):
+        sh('adb shell rm -f /sdcard/ui.xml'); sh('adb shell uiautomator dump /sdcard/ui.xml')
+        x = sh('adb shell cat /sdcard/ui.xml')
+        if '<hierarchy' in x and 'text="' in x: return x
+        time.sleep(5)
+    return x
 def find(xml, pat):
     for m in re.finditer(r'<node [^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
         if re.search(pat, m.group(1)): x1,y1,x2,y2 = map(int, m.groups()[1:]); return ((x1+x2)//2, (y1+y2)//2)
@@ -18,7 +23,8 @@ for app, pkg in [('Customer', 'com.janahalriyadah.store.debug'), ('Owner', 'com.
     sh('adb logcat -c')
     sh(f'adb install -r out/Janah-{app}-debug.apk')
     sh(f'adb shell am start -W -n {pkg}/com.janahalriyadah.app.MainActivity')
-    time.sleep(20)
+    time.sleep(35)
+    sh(f'adb shell dumpsys activity activities | grep -E "topResumedActivity|ResumedActivity" | head -3')
     sh(f'adb exec-out screencap -p > shots/{app}-1-start.png')
     x = dump(); open(f'shots/{app}-ui.xml','w').write(x)
     found = bool(re.search(r'جناح|Janah|المالك|Owner', x))

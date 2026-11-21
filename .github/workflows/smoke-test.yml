@@ -5,6 +5,8 @@ on:
   push:
     branches: [ android-apps ]
     paths: [ '.github/workflows/smoke-test.yml', '.github/scripts/**' ]
+permissions:
+  contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
