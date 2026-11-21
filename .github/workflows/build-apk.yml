@@ -21,7 +21,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK (pre-installed on runner)
+        run: |
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          echo "Using $SDKM"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
 
       - uses: gradle/actions/setup-gradle@v4
 
